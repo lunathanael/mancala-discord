@@ -64,7 +64,7 @@ class Board:
                     costume: Image.Image = self.rock_icos[randint(0, len(self.rock_icos) - 1)].resize((size, size))
                     self.holes[x][y].append(Rock(costume, offset))
 
-    def get_board(self, facing: Literal[0, 1], numsize=35) -> Image.Image:
+    def get_board(self, facing: Literal[0, 1], digit_size: int=35) -> Image.Image:
         leap: int = 130
 
         p: Tuple[Board.Coordinate] = ((285, 280), (935, 130))
@@ -73,7 +73,7 @@ class Board:
 
         board: Image.Image = self.board_ico.copy()
 
-        font: ImageFont.FreeTypeFont = ImageFont.truetype(r'C:\Users\System-Pc\Desktop\arial.ttf', numsize)
+        font: ImageFont.FreeTypeFont = ImageFont.truetype(r'C:\Windows\Fonts\Arial.ttf', digit_size)
 
         # Loop which generates an image depending on which way the board should be facing
         for x in range(2):
