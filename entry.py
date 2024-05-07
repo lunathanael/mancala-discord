@@ -132,7 +132,7 @@ class ConfirmationView(discord.ui.View):
         match: Match = await self.match_manager.add_match(player_1=self.player_1, player_2=self.player_2)
 
         await interaction.response.send_message("Challenge accepted!", ephemeral=True, delete_after=5)
-        await match.send_initial_message()
+        await match.send_reply(move=None, gif=False)
 
         self.stop()
 
@@ -212,14 +212,14 @@ async def challenge(ctx: commands.Context, opponent: discord.User, first: Option
     else:
         if opponent is None or player_1 == player_2:
             match: Match = await match_manager.add_match(player_1=player_1, player_2=player_2)
-            await match.send_initial_message()
+            await match.send_reply(move=None, gif=False)
 
 
 def main():
     """Initialize match container and run the bot."""
     global match_manager
 
-    match_manager = MatchManager()
+    match_manager = MatchManager(bot=bot)
     bot.run(DISCORD_API_TOKEN)
 
 

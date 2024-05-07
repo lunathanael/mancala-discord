@@ -32,6 +32,7 @@ from discord.ext import commands
 from discord.ui import Button, View
 
 from errors import PlayerFound, PlayerNotFound
+from engine import EngineInterface
 from game_logic.gamestate import Gamestate
 
 if TYPE_CHECKING:
@@ -75,7 +76,7 @@ class MoveView(View):
     def legal_move_gen(self, idx: int) -> Callable:
         async def legal_move(interaction: discord.Interaction) -> None:
             await interaction.message.edit(view=None)
-            await self.match.send_move_reply(move=idx, gif=True)
+            await self.match.send_reply(move=idx, gif=True)
             self.stop()
         return legal_move
     
@@ -108,6 +109,7 @@ class Match:
     """
 
     __slots__: Tuple[str] = (
+        'bot',
         'msg',
         'player_1',
         'player_2',
@@ -116,15 +118,18 @@ class Match:
         'kwargs',
         'autonomous',
         'gamestate',
+        'engine',
     )
 
     VALID_EMOJIS: List[str] = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣"]
     INVALID_EMOJIS: List[str] = ["❤", "🩷", "🧡", "💛", "💚", "💙"]
 
-    def __init__(self, msg: Message, player_1: Optional[User] = None, player_2: Optional[User] = None, **kwargs: Dict[str, Any]):
+    def __init__(self, bot: User, msg: Message, player_1: Optional[User] = None, player_2: Optional[User] = None, **kwargs: Dict[str, Any]):
         self.msg: Message = msg
+        self.bot: User = bot
         self.player_1: Optional[User] = player_1
         self.player_2: Optional[User] = player_2
+
         self.previous_player: Optional[str] = None
         self.difficulty: int = kwargs.pop('difficulty', 6)
 
@@ -132,6 +137,8 @@ class Match:
         self.autonomous: bool = player_1 is None and player_2 is None
 
         self.gamestate: Gamestate = Gamestate()
+
+        self.engine: EngineInterface = EngineInterface()
 
     @property
     def number_of_holes(self) -> int:
@@ -162,15 +169,24 @@ class Match:
             gif = False
             img: Image.Image = self.gamestate.get_board()
 
-        content: str = f"{self.current_player.mention}, it's your turn!" if self.current_player else "AI is thinking..."
+        content: str = f"{self.current_player.mention}, it's your turn!" if self.current_player else "I'm thinking, give me a second..."
+        description: str = ""
+        if self.previous_player:
+            description += f"{self.previous_player} played hole {move + 1}.\n"
+        else:
+            description += "The game has started!\n"
+        if self.current_player:
+            description += "Choose a move!\n"
+        else:
+            description += "Be patient, I'm a bit slow.\n"
+
         embed: discord.Embed = discord.Embed(
             title=f"{self.player_1.display_name if self.player_1 else f'AI level {self.difficulty}'} vs. {self.player_2.display_name if self.player_2 else f'AI level {self.difficulty}'}",
-            description=f"{self.previous_player} played hole {move + 1}.\n" if self.previous_player else ""
-                        f"React to choose a move!",
+            description=description,
             color=self.embed_color
         )
 
-        self.previous_player = self.current_player.mention if self.current_player else "AI"
+        self.previous_player = self.current_player.mention if self.current_player else self.bot.mention
 
         if gif:
             output_gif = BytesIO()
@@ -206,12 +222,23 @@ class Match:
                 await self.msg.add_reaction(Match.VALID_EMOJIS[idx])
             else:
                 await self.msg.add_reaction(Match.INVALID_EMOJIS[idx])
-    
-    async def send_initial_message(self) -> None:
-        self.msg = await self.msg.reply(**self.msg_content(gif=False))
 
-    async def send_move_reply(self, move: Literal[0, 1, 2, 3, 4, 5], gif: bool = True) -> None:
+    async def send_reply(self, move: Optional[Literal[0, 1, 2, 3, 4, 5]] = None, gif: bool = True) -> None:
+        if self.gamestate.game_over:
+            pass
+
         self.msg = await self.msg.reply(**self.msg_content(move=move, gif=gif))
+
+        if self.current_player is None:
+            await self.engine_reply(gif=gif)
+
+    async def engine_reply(self, gif: bool = True) -> Message:
+        engine_move: int = await self.engine.search(
+            game_state=self.gamestate,
+            engine_depth=self.difficulty,
+        )
+        engine_move: Literal[0, 1, 2, 3, 4, 5] = self.gamestate.absolute_index_to_relative(engine_move)
+        await self.send_reply(move=engine_move, gif=gif)
 
     @staticmethod
     def default_embed_colors() -> Tuple[Color]:
@@ -238,6 +265,7 @@ class Challenge:
     """
 
     __slots__: Tuple[str] = (
+        'bot',
         'msg',
         'challenger',
         'challenged',
@@ -246,14 +274,16 @@ class Challenge:
         'kwargs',
     )
 
-    def __init__(self, 
+    def __init__(self,
+                 bot: User,
                  msg: Message,
                  challenger: Optional[User] = None, 
                  challenged: Optional[User] = None, 
                  player_1: Optional[User] = None, 
                  player_2: Optional[User] = None, 
                  **kwargs: Dict[str, Any]):
-        self.msg = msg
+        self.bot: User = bot
+        self.msg: Message = msg
         self.challenger: Optional[User] = challenger
         self.challenged: Optional[User] = challenged
         self.player_1: Optional[User] = player_1
@@ -265,6 +295,7 @@ class Challenge:
 
     def to_match(self) -> Match:
         return Match(
+            bot=self.bot.user,
             msg=self.msg,
             player_1=self.player_1,
             player_2=self.player_2,
@@ -284,11 +315,13 @@ class MatchManager:
     """
 
     __slots__: Tuple[str] = (
+        'bot',
         'matches',
         'player_dict',
     )
 
-    def __init__(self):
+    def __init__(self, bot: User):
+        self.bot: User = bot
         self.matches: Set[Match] = set()
         self.player_dict: Dict[User, Match | Challenge] = dict()
 
@@ -335,6 +368,7 @@ class MatchManager:
             raise PlayerFound(player_2)
 
         challenge: Challenge = Challenge(
+            bot=self.bot,
             msg=msg,
             challenger=challenger,
             challenged=challenged,
