@@ -37,7 +37,6 @@ from errors import PlayerFound
 
 if TYPE_CHECKING:
     from match import Challenge, Match, MessageKwargs
-    match_manager = MatchManager() # for autocomplete
 
 DISCORD_API_TOKEN: str
 bot: commands.Bot
