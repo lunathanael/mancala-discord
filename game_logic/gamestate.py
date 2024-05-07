@@ -116,21 +116,19 @@ class Gamestate:
             seed_count -= 1
 
         if hole_index == self._rule_set['PLAYER_TO_STORE_INDEX'][player]:
-            if self._rule_set['ALLOW_MULTIPLE_LAPS']:
+            if self._rule_set['allow_multiple_laps']:
                 return self._board.get_board_image(player)
-            else:
-                raise UndefinedBehavior
         elif self._board[hole_index] == 1:
             if self._rule_set['allow_captures']:
                 if self._rule_set['capture_on_one_cycle']:
                     if first_cycle:
                         self._do_capture(hole_index, player)
-                        self._board.get_board_image(opp_player)
+                        return self._board.get_board_image(opp_player)
                 else:
                     self._do_capture(hole_index, player)
                     return self._board.get_board_image(opp_player)
         else:
-            if self._rule_set['ALLOW_RELAY_SOWING']:
+            if self._rule_set['do_relay_sowing']:
                 relative_hole_index: int = self.absolute_index_to_relative(hole_index)
                 return self._play_move(relative_hole_index)
 
@@ -189,12 +187,14 @@ class Gamestate:
 
     def _do_capture(self, hole_index: int, side: Literal[0, 1]) -> None:
         if self._rule_set['capture_both']:
-            self._board[self._rule_set['PLAYER_TO_STORE_INDEX'][side]] += self._board[hole_index]
+            seeds: int = self._board[hole_index] 
             self._board[hole_index] = 0
+            self._board[self._rule_set['PLAYER_TO_STORE_INDEX'][side]] += seeds
     
         opposite_hole_index: int = ((2 * self._rule_set['PLAYER_TO_STORE_INDEX'][0]) - hole_index)
-        self._board[self._rule_set['PLAYER_TO_STORE_INDEX'][side]] += self._board[opposite_hole_index]
+        seeds: int = self._board[opposite_hole_index]
         self._board[opposite_hole_index] = 0
+        self._board[self._rule_set['PLAYER_TO_STORE_INDEX'][side]] += seeds
 
         self.next_player()
 
@@ -205,3 +205,6 @@ class Gamestate:
     
     def absolute_index_to_relative(self, absolute_hole_index: int):
         return absolute_hole_index % (self._rule_set['NUMBER_OF_HOLES_PER_SIDE'] + 1)
+    
+    def __str__(self) -> str:
+        return str(self._board) + ' ' + str(self.current_player)

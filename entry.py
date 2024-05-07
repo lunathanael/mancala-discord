@@ -124,7 +124,7 @@ class ConfirmationView(discord.ui.View):
         
         embed: discord.Embed = discord.Embed(
             title="Challenge Accepted!",
-            description=f"**{challenge.challenger.display_name}** accepted **{challenge.challenger.display_name}**'s challenge.\n\n",
+            description=f"**{challenge.challenged.display_name}** accepted **{challenge.challenger.display_name}**'s challenge.\n\n",
             color=discord.Color.green()
         )
 

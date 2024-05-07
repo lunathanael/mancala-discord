@@ -65,7 +65,10 @@ class MoveView(View):
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user != self.player:
-            await interaction.response.send_message("You are not allowed to interact with this game.", ephemeral=True, delete_after=5)
+            if interaction.user == self.match.other_player:
+                await interaction.response.send_message("Wait your turn!", ephemeral=True, delete_after=5)
+            else:
+                await interaction.response.send_message("You are not allowed to interact with this game.", ephemeral=True, delete_after=5)
             return False
         return True
 
@@ -108,6 +111,7 @@ class Match:
         'msg',
         'player_1',
         'player_2',
+        'previous_player',
         'difficulty',
         'kwargs',
         'autonomous',
@@ -121,6 +125,7 @@ class Match:
         self.msg: Message = msg
         self.player_1: Optional[User] = player_1
         self.player_2: Optional[User] = player_2
+        self.previous_player: Optional[str] = None
         self.difficulty: int = kwargs.pop('difficulty', 6)
 
         self.kwargs: Dict[str, Any] = kwargs
@@ -160,10 +165,12 @@ class Match:
         content: str = f"{self.current_player.mention}, it's your turn!" if self.current_player else "AI is thinking..."
         embed: discord.Embed = discord.Embed(
             title=f"{self.player_1.display_name if self.player_1 else f'AI level {self.difficulty}'} vs. {self.player_2.display_name if self.player_2 else f'AI level {self.difficulty}'}",
-            description=f"{self.other_player.mention if self.other_player else "AI"} played hole {move + 1}.\n" if move else ""
+            description=f"{self.previous_player} played hole {move + 1}.\n" if self.previous_player else ""
                         f"React to choose a move!",
             color=self.embed_color
         )
+
+        self.previous_player = self.current_player.mention if self.current_player else "AI"
 
         if gif:
             output_gif = BytesIO()
@@ -181,7 +188,7 @@ class Match:
             file: discord.File = discord.File(output_image, filename="image.png")
             embed.set_image(url="attachment://image.png")
 
-        view: MoveView = MoveView(self)
+        view: Optional[MoveView] = MoveView(self) if self.current_player else None
 
         return MessageKwargs(
             {
@@ -202,11 +209,9 @@ class Match:
     
     async def send_initial_message(self) -> None:
         self.msg = await self.msg.reply(**self.msg_content(gif=False))
-        #await self.add_emojis()
 
     async def send_move_reply(self, move: Literal[0, 1, 2, 3, 4, 5], gif: bool = True) -> None:
         self.msg = await self.msg.reply(**self.msg_content(move=move, gif=gif))
-        #await self.add_emojis()
 
     @staticmethod
     def default_embed_colors() -> Tuple[Color]:

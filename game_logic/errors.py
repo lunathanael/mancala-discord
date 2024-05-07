@@ -44,7 +44,7 @@ class InvalidMove(GameException):
 
     def __init__(self, move: int):
         self.move: int = move
-        message = f'An illegal move: {move} was attempted.'
+        message: str = f'An illegal move: {move} was attempted.'
         super().__init__(message)
 
 
@@ -53,7 +53,7 @@ class IllegalMove(GameException):
 
     def __init__(self, move: int):
         self.move: int = move
-        message = f'An illegal move: {move} was attempted.'
+        message: str = f'An illegal move: {move} was attempted.'
         super().__init__(message)
 
 
@@ -61,5 +61,5 @@ class UndefinedBehavior(GameException):
     """Undefined behavior by current ruleset, probably because allow multiple laps was false."""
 
     def __init__(self):
-        message = 'There was undefined behavior in a game.'
+        message: str = 'There was undefined behavior in a game.'
         super().__init__(message)

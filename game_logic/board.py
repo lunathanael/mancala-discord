@@ -152,3 +152,13 @@ class Board:
     def copy(self) -> Board:
         return copy.deepcopy(self)
 
+    def __str__(self) -> str:
+        board_count: List[int] = []
+        for hole in self.holes[0]:
+            board_count.append(len(hole))
+        board_count.append(len(self.store[0]))
+        for hole in reversed(self.holes[1]):
+            board_count.append(len(hole))
+        board_count.append(len(self.store[1]))
+
+        return ' '.join(map(str, board_count))

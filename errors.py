@@ -24,7 +24,7 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from discord import User, Message
@@ -44,7 +44,7 @@ class PlayerFound(MatchException):
 
     def __init__(self, user: User):
         self.player = user
-        message = f'The match requested contains an occupied user with id: {user.id}.'
+        message: str = f'The match requested contains an occupied user with id: {user.id}.'
         super().__init__(message)
 
 
@@ -53,5 +53,38 @@ class PlayerNotFound(MatchException):
 
     def __init__(self, user: User):
         self.player = user
-        message = f'A challenge could not be found containing the user {user.id}.'
+        message: str = f'A challenge could not be found containing the user {user.id}.'
         super().__init__(message)
+
+
+class EngineExecutableError(MatchException):
+    """An exception that is raised when and engine subprocess encountered a Process Error."""
+
+    def __init__(self, message: Optional[str] = None, return_code: Optional[int] = None):
+        self.message: Optional[str] = message
+        self.return_code: Optional[int] = return_code
+        message: str = f'The engine executable subprocess failed with message "{message}" and return code {return_code}.'
+        super().__init__(message)
+
+
+class EngineTimedOut(EngineExecutableError):
+    """An exception that is raised when and engine subprocess timed out parsing an output."""
+
+    def __init__(self):
+        message: str = 'The engine executable timed out.'
+        super().__init__(message, -1)
+
+
+class EngineFailedParse(EngineExecutableError):
+    """An exception that is raised when and engine subprocess failed to parse a command such as reading a :class:`Gamestate`."""
+
+    def __init__(self, message: str):
+        super().__init__(message, -2)
+
+
+class EngineSearchNotFound(EngineExecutableError):
+    """An exception that is raised when and engine subprocess requested a search with an invalid engine type."""
+
+    def __init__(self, engine: str):
+        message: str = f'The engine type {engine} is not yet supported.'
+        super().__init__(message, -3)
