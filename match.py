@@ -24,10 +24,12 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import Dict, Set, Tuple, Optional, Any, TypedDict, TYPE_CHECKING
+from typing import Dict, Set, Tuple, Optional, Any, List, TypedDict, Literal, Callable, TYPE_CHECKING
+from io import BytesIO
 
 import discord
-from io import BytesIO
+from discord.ext import commands
+from discord.ui import Button, View
 
 from errors import PlayerFound, PlayerNotFound
 from game_logic.gamestate import Gamestate
@@ -41,6 +43,43 @@ class MessageKwargs(TypedDict):
     content: str
     embed: Embed
     file: File
+
+
+class MoveView(View):
+    def __init__(self, match: Match):
+        super().__init__(timeout=None)
+
+        self.match: Match = match
+        self.player: User = match.current_player
+
+        valid_mask: List[bool] = match.gamestate.valid_mask
+        for idx, validity in enumerate(valid_mask):
+            if validity:
+                button: Button = Button(label=str(idx), style=discord.ButtonStyle.green, )
+                button.callback = self.legal_move_gen(idx)
+            else:
+                button: Button = Button(emoji='❌', style=discord.ButtonStyle.red)
+                button.callback = self.illegal_move_gen(idx)
+            button.idx = idx
+            self.add_item(button)
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user != self.player:
+            await interaction.response.send_message("You are not allowed to interact with this game.", ephemeral=True, delete_after=5)
+            return False
+        return True
+
+    def legal_move_gen(self, idx: int) -> Callable:
+        async def legal_move(interaction: discord.Interaction) -> None:
+            await interaction.message.edit(view=None)
+            await self.match.send_move_reply(move=idx, gif=True)
+            self.stop()
+        return legal_move
+    
+    def illegal_move_gen(self, idx: int) -> Callable:
+        async def illegal_move(interaction: discord.Interaction) -> None:
+            await interaction.response.send_message(f"The hole you selected:{idx} is empty!", ephemeral=True, delete_after=5)
+        return illegal_move
 
 
 class Match:
@@ -75,6 +114,9 @@ class Match:
         'gamestate',
     )
 
+    VALID_EMOJIS: List[str] = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣"]
+    INVALID_EMOJIS: List[str] = ["❤", "🩷", "🧡", "💛", "💚", "💙"]
+
     def __init__(self, msg: Message, player_1: Optional[User] = None, player_2: Optional[User] = None, **kwargs: Dict[str, Any]):
         self.msg: Message = msg
         self.player_1: Optional[User] = player_1
@@ -87,28 +129,51 @@ class Match:
         self.gamestate: Gamestate = Gamestate()
 
     @property
+    def number_of_holes(self) -> int:
+        return self.gamestate.number_of_holes
+
+    @property
     def current_player(self) -> User:
         if self.gamestate.current_player:
             return self.player_2
         else:
             return self.player_1
+        
+    @property
+    def other_player(self) -> User:
+        if self.gamestate.current_player:
+            return self.player_1
+        else:
+            return self.player_2
 
     @property
     def embed_color(self) -> Color:
-        return self.current_player.accent_color if self.current_player.accent_color else Match.default_embed_colors()[self.gamestate.current_player]
+        return self.current_player.accent_color if (self.current_player and self.current_player.accent_color) else Match.default_embed_colors()[self.gamestate.current_player]
     
-    def msg_content(self, gif: bool = False) -> MessageKwargs:
-        content: str = f"{self.current_player.mention}, it's your turn!"
+    def msg_content(self, move: Optional[Literal[0, 1, 2, 3, 4, 5]] = None, gif: bool = False) -> MessageKwargs:
+        if move is not None:
+            img: List[Image.Image] | Image.Image = self.gamestate.play_move(move, animate=gif)
+        else:
+            gif = False
+            img: Image.Image = self.gamestate.get_board()
+
+        content: str = f"{self.current_player.mention}, it's your turn!" if self.current_player else "AI is thinking..."
         embed: discord.Embed = discord.Embed(
             title=f"{self.player_1.display_name if self.player_1 else f'AI level {self.difficulty}'} vs. {self.player_2.display_name if self.player_2 else f'AI level {self.difficulty}'}",
-            description=f"React to choose a move!",
+            description=f"{self.other_player.mention if self.other_player else "AI"} played hole {move + 1}.\n" if move else ""
+                        f"React to choose a move!",
             color=self.embed_color
         )
 
         if gif:
-            pass
+            output_gif = BytesIO()
+            img[0].save(output_gif, save_all=True, format='GIF', append_images=img, duration=400)
+            output_gif.seek(0)
+
+            file = discord.File(output_gif, filename="image.gif")
+            embed.set_image(url="attachment://image.gif")
         else:
-            file_image: Image.Image = self.gamestate.get_board(side=self.gamestate.current_player)
+            file_image: Image.Image = self.gamestate.get_board()
             output_image: BytesIO = BytesIO()
             file_image.save(output_image, save_all=True, format='png')
             output_image.seek(0)
@@ -116,16 +181,32 @@ class Match:
             file: discord.File = discord.File(output_image, filename="image.png")
             embed.set_image(url="attachment://image.png")
 
+        view: MoveView = MoveView(self)
+
         return MessageKwargs(
             {
                 'content': content,
                 'embed': embed,
-                'file': file
+                'file': file,
+                'view': view
             }
         )
     
+    async def add_emojis(self) -> None:
+        valid_mask: List[bool] = self.gamestate.valid_mask
+        for idx, validity in enumerate(valid_mask):
+            if validity:
+                await self.msg.add_reaction(Match.VALID_EMOJIS[idx])
+            else:
+                await self.msg.add_reaction(Match.INVALID_EMOJIS[idx])
+    
     async def send_initial_message(self) -> None:
         self.msg = await self.msg.reply(**self.msg_content(gif=False))
+        #await self.add_emojis()
+
+    async def send_move_reply(self, move: Literal[0, 1, 2, 3, 4, 5], gif: bool = True) -> None:
+        self.msg = await self.msg.reply(**self.msg_content(move=move, gif=gif))
+        #await self.add_emojis()
 
     @staticmethod
     def default_embed_colors() -> Tuple[Color]:

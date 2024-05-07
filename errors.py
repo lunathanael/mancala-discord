@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 class MatchException(Exception):
     """Exception that's raised when an operation in the :class:`Match` fails.
 
-    These are usually for exceptions that happened during the match, such as invalid player.
+    These are usually for exceptions that happened during the challenge and match parsing, such as invalid player.
     """
 
     pass

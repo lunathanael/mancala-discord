@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import TypedDict, Tuple
 
 
 class Ruleset(TypedDict):
@@ -12,6 +12,10 @@ class Ruleset(TypedDict):
 
     seeds_per_hole: int
 
+    NUMBER_OF_HOLES_PER_SIDE: int
+    NUMBER_OF_TOTAL_HOLES: int
+    PLAYER_TO_STORE_INDEX: Tuple[int]
+
 def DefaultRuleset() -> Ruleset:
     ruleset: Ruleset = {
         'allow_captures': True,
@@ -19,6 +23,11 @@ def DefaultRuleset() -> Ruleset:
         'capture_on_one_cycle': False,
         'do_relay_sowing': False,
         'allow_multiple_laps': True,
+
         'seeds_per_hole': 4,
+
+        'NUMBER_OF_HOLES_PER_SIDE': 6,
+        'NUMBER_OF_TOTAL_HOLES' : 14,
+        'PLAYER_TO_STORE_INDEX': (6, 13),
     }
     return ruleset

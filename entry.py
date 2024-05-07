@@ -110,7 +110,7 @@ class ConfirmationView(discord.ui.View):
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user != self.player_1 and interaction.user != self.player_2:
-            await interaction.response.send_message("You are not allowed to interact with this challenge.", ephemeral=True)
+            await interaction.response.send_message("You are not allowed to interact with this challenge.", ephemeral=True, delete_after=5)
             return False
         return True
 
@@ -172,7 +172,10 @@ async def challenge(ctx: commands.Context, opponent: discord.User, first: Option
     if opponent == bot.user:
         opponent = None
     elif opponent.bot:
-        await ctx.reply(f"I'm not sure {opponent.mention} know how to play chess 😕")
+        await ctx.reply(f"I don't think {opponent.mention} know how to play. 😕")
+        return
+    elif opponent == ctx.author:
+        await ctx.reply(f"You can't challenge yourself. (for now) 😅")
         return
     
     player_1: Optional[discord.User] = ctx.author if first else opponent

@@ -30,10 +30,36 @@ if TYPE_CHECKING:
     pass
 
 
-class MatchException(Exception):
+class GameException(Exception):
     """Exception that's raised when an operation in the :class:`Match` fails.
 
     These are usually for exceptions that happened during the match, such as invalid player.
     """
 
     pass
+
+
+class InvalidMove(GameException):
+    """An invalid move was attempted during the match, when the hole does not exist."""
+
+    def __init__(self, move: int):
+        self.move: int = move
+        message = f'An illegal move: {move} was attempted.'
+        super().__init__(message)
+
+
+class IllegalMove(GameException):
+    """An illegal move was attempted during the match, when the hole is empty."""
+
+    def __init__(self, move: int):
+        self.move: int = move
+        message = f'An illegal move: {move} was attempted.'
+        super().__init__(message)
+
+
+class UndefinedBehavior(GameException):
+    """Undefined behavior by current ruleset, probably because allow multiple laps was false."""
+
+    def __init__(self):
+        message = 'There was undefined behavior in a game.'
+        super().__init__(message)
