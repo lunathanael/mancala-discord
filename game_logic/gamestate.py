@@ -106,6 +106,9 @@ class Gamestate:
     def result(self) -> Optional[Literal[0, 1, 2]]:
         return self._result
 
+    def terminate(self) -> None:
+        self._game_over = True
+
     def next_player(self) -> None:
         self._current_player = 1 - self._current_player
 

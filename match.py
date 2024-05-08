@@ -139,6 +139,9 @@ class Match:
     def embed_color(self) -> Color:
         return self.current_player.accent_color if (self.current_player and self.current_player.accent_color) else Match.default_embed_colors()[self.gamestate.current_player]
 
+    def terminate(self) -> None:
+        self.gamestate.terminate()
+
     def msg_content(self, move: Optional[Literal[0, 1, 2, 3, 4, 5]] = None, gif: bool = False) -> MessageKwargs:
         if move is not None:
             img: List[Image.Image] | Image.Image = self.gamestate.play_move(move, animate=gif)

@@ -69,10 +69,14 @@ class ConfirmationView(discord.ui.View):
 
         match: Match = async_results[0]
 
-        await asyncio.gather(
-            interaction.response.send_message("Challenge accepted!", ephemeral=True, delete_after=5),
-            match.send_reply(move=None, gif=False)
-        )
+        try:
+            await asyncio.gather(
+                interaction.response.send_message("Challenge accepted!", ephemeral=True, delete_after=5),
+                match.send_reply(move=None, gif=False)
+            )   
+        except discord.errors.Forbidden:
+            match.terminate()
+            await match.msg.edit(content=f"{interaction.user.mention}I don't have the required permissions! (Files, Embed)", embed=None, view=None)
 
         self.stop()
 

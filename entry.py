@@ -126,7 +126,11 @@ async def challenge(ctx: commands.Context, opponent: discord.User, first: Option
             color=discord.Color.blue())
 
         view: ConfirmationView = ConfirmationView(match_manager=match_manager, player_1=player_1, player_2=player_2)
-        msg: discord.Message = await ctx.send(opponent.mention, embed=embed, view=view)
+        try:
+            msg: discord.Message = await ctx.send(opponent.mention, embed=embed, view=view)
+        except discord.errors.Forbidden:
+            msg: discord.Message = await ctx.send(content=f"{ctx.author.mention}I don't have the required permissions! (Files, Embed)", embed=None, view=None)
+            return
 
     try:
         await match_manager.add_challenge(
@@ -146,7 +150,11 @@ async def challenge(ctx: commands.Context, opponent: discord.User, first: Option
     else:
         if opponent is None or player_1 == player_2:
             match: Match = await match_manager.add_match(player_1=player_1, player_2=player_2)
-            await match.send_reply(move=None, gif=False)
+            try:
+                await match.send_reply(move=None, gif=False)
+            except discord.errors.Forbidden:
+                match.terminate()
+                await msg.edit(content=f"{ctx.author.mention}I don't have the required permissions! (Files, Embed)", embed=None, view=None)
 
 
 def main():
