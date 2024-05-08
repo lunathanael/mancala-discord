@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 
 
 class Gamestate:
-    """Represents a mancal game.
+    """Represents a mancala game.
 
     A Game stores information about the current game.
 
@@ -50,7 +50,7 @@ class Gamestate:
         A wrapper function to extract the number of holes from the ruleset.
     game_over: :class:`bool`
         If the game is over.
-    result: Optional[Listeral[0, 1, 2]]
+    result: Optional[Literal[0, 1, 2]]
         The game's output:
             :class:`None` representing a non-terminal game.
             0 representing the first player's victory.
@@ -116,7 +116,7 @@ class Gamestate:
         if self._rule_set['capture_both']:
             self._board[self._rule_set['PLAYER_TO_STORE_INDEX'][side]] += self._board[hole_index]
             self._board[hole_index] = 0
-        opposite_hole_index: int = ((2 * self._rule_set['PLAYER_TO_STORE_INDEX'][0]) - hole_index)
+        opposite_hole_index: int = (2 * self._rule_set['PLAYER_TO_STORE_INDEX'][0]) - hole_index
         self._board[self._rule_set['PLAYER_TO_STORE_INDEX'][side]] += self._board[opposite_hole_index]
         self._board[opposite_hole_index] = 0
 

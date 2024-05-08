@@ -24,7 +24,7 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import Dict, Set, Tuple, Optional, Any, List, TypedDict, Literal, Callable, TYPE_CHECKING
+from typing import Dict, Set, Tuple, Optional, Any, List, TypedDict, Literal, TYPE_CHECKING
 from io import BytesIO
 
 import discord
@@ -132,7 +132,7 @@ class Match:
         if self.gamestate.result is None:
             raise MatchNotOver
         else:
-            return results[self.gamestate.result]
+            return results[int(self.gamestate.result)]
 
 
     @property
@@ -191,7 +191,7 @@ class Match:
             if winner is not None:
                 embed.description = f"Match over.\nThe game winner is {winner.mention}!!\n"
             else:
-                embed.description = f"Match over.\nThe game ended in a tie!\n"
+                embed.description = "Match over.\nThe game ended in a tie!\n"
 
         return MessageKwargs(
             {

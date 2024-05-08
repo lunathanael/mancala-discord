@@ -24,15 +24,14 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import Optional, List, Callable, TYPE_CHECKING
+from typing import Optional, List, Callable, Awaitable, TYPE_CHECKING
+import asyncio
 
 import discord
 from discord.ui import Button, View
 
-from match import MatchManager, Challenge, Match
-
 if TYPE_CHECKING:
-    from discord import User
+    from match import MatchManager, Challenge, Match
 
 
 class ConfirmationView(discord.ui.View):
@@ -50,24 +49,29 @@ class ConfirmationView(discord.ui.View):
         return True
 
     @discord.ui.button(label="Accept", style=discord.ButtonStyle.green, custom_id="yes_button")
-    async def yes_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def yes_button(self, interaction: discord.Interaction, button: Button):
         challenge: Challenge = await self.match_manager.find_challenge(player_1=self.player_1, player_2=self.player_2)
 
         if interaction.user == challenge.challenger:
             await interaction.response.send_message("You cannot accept your own challenge.", ephemeral=True)
             return
-        
+
         embed: discord.Embed = discord.Embed(
             title="Challenge Accepted!",
             description=f"**{challenge.challenged.display_name}** accepted **{challenge.challenger.display_name}**'s challenge.\n\n",
             color=discord.Color.green()
         )
 
-        await challenge.edit_msg(embed=embed, view=None)
-        match: Match = await self.match_manager.add_match(player_1=self.player_1, player_2=self.player_2)
+        match: Awaitable[Match] = self.match_manager.add_match(player_1=self.player_1, player_2=self.player_2)
+        await asyncio.gather(
+            match,
+            challenge.edit_msg(embed=embed, view=None)
+        )
 
-        await interaction.response.send_message("Challenge accepted!", ephemeral=True, delete_after=5)
-        await match.send_reply(move=None, gif=False)
+        asyncio.gather(
+            interaction.response.send_message("Challenge accepted!", ephemeral=True, delete_after=5),
+            match.send_reply(move=None, gif=False)
+        )
 
         self.stop()
 
@@ -90,9 +94,11 @@ class ConfirmationView(discord.ui.View):
             )
             response_msg: str = "Challenge rejected."
 
-        await challenge.edit_msg(embed=embed, view=None)
-        await self.match_manager.delete_challenge(player_1=self.player_1, player_2=self.player_2)
-        await interaction.response.send_message(response_msg, ephemeral=True, delete_after=5)
+        await asyncio.gather(
+            challenge.edit_msg(embed=embed, view=None),
+            self.match_manager.delete_challenge(player_1=self.player_1, player_2=self.player_2),
+            interaction.response.send_message(response_msg, ephemeral=True, delete_after=5)
+        )
         self.stop()
 
 
@@ -101,7 +107,7 @@ class MoveView(View):
         super().__init__(timeout=None)
 
         self.match: Match = match
-        self.player: User = match.current_player
+        self.player: discord.User = match.current_player
 
         valid_mask: List[bool] = match.gamestate.valid_mask
         for idx, validity in enumerate(valid_mask):

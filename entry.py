@@ -36,31 +36,27 @@ from errors import PlayerFound
 from views import ConfirmationView
 
 if TYPE_CHECKING:
-    from match import Challenge, Match
+    from match import Match
 
-DISCORD_API_TOKEN: str
-bot: commands.Bot
+
+# Load API token from .env and initialize bot intents.
+load_dotenv()
+DISCORD_API_TOKEN: str = os.getenv('DISCORD_BOT_API_TOKEN')
+
+intents: discord.Intents = discord.Intents.default()
+intents.message_content = True
+activity: discord.BaseActivity = discord.Game(name="Mancala")
+bot: commands.Bot = commands.Bot(command_prefix='!',
+                                 intents=intents,
+                                 activity=activity,
+                                 status=discord.Status.online)
+
 match_manager: MatchManager
-
-
-def initialize_bot():
-    """Load API token from .env and initialize bot intents."""
-    global DISCORD_API_TOKEN, bot
-
-    load_dotenv()
-    DISCORD_API_TOKEN = os.getenv('DISCORD_BOT_API_TOKEN')
-
-    intents: discord.Intents = discord.Intents.default()
-    intents.message_content = True
-
-    bot = commands.Bot(command_prefix='!', intents=intents)
-
-
-initialize_bot()
 
 
 @bot.event
 async def on_ready():
+    """Log the bot ready event. """
     print(f'We have logged in as {bot.user}')
 
 
