@@ -98,8 +98,8 @@ async def sync(
 
 @bot.hybrid_command(name='challenge', description='Request a mancala match.')
 @discord.app_commands.describe(opponent='Please select an opponent, selecting the bot for AI. (Required)',
-                       first='Select to be first player. (Optional) Default: True',
-                       difficulty='If AI was selected, please choose a difficulty 1-20. (Optional) Default: 6')
+                       first='Select to be first player. (Optional)',
+                       difficulty='If AI was selected, please choose a difficulty 0-20. (Optional)')
 async def challenge(ctx: commands.Context, opponent: discord.User, first: Optional[bool] = True,
                   difficulty: Optional[Literal[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]] = 6):
 
