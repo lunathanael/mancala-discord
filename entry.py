@@ -97,11 +97,13 @@ async def sync(
 
 
 @bot.hybrid_command(name='challenge', description='Request a mancala match.')
-@discord.app_commands.describe(opponent='Please select an opponent, selecting the bot for AI. (Required)',
-                       first='Select to be first player. (Optional)',
-                       difficulty='If AI was selected, please choose a difficulty 0-20. (Optional)')
-async def challenge(ctx: commands.Context, opponent: discord.User, first: Optional[bool] = True,
-                  difficulty: Optional[Literal[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]] = 6):
+@discord.app_commands.describe(opponent='The opponent, selecting the bot for AI. (Required)',
+                       second='Select `True` to go second. (Optional)',
+                       difficulty="The AI's difficulty. (Optional)")
+async def challenge(ctx: commands.Context,
+                    opponent: discord.User = commands.parameter(description='Please select an opponent, selecting the bot for AI. (Required)'),
+                    second: Optional[bool] = commands.parameter(description='Select `True` to go second. (Optional)', default=False),
+                    difficulty: Optional[Literal[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]] = commands.parameter(description="The AI's difficulty. (Optional)", default=6)):
 
     if opponent == bot.user:
         opponent = None
@@ -112,8 +114,8 @@ async def challenge(ctx: commands.Context, opponent: discord.User, first: Option
         await ctx.reply("You can't challenge yourself. (for now) 😅")
         return
 
-    player_1: Optional[discord.User] = ctx.author if first else opponent
-    player_2: Optional[discord.User] = opponent if first else ctx.author
+    player_1: Optional[discord.User] = opponent if second else ctx.author
+    player_2: Optional[discord.User] = ctx.author if second else opponent
 
     if opponent is None or player_1 == player_2:
         msg: discord.Message = await ctx.send("Starting match...")
