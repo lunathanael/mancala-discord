@@ -24,7 +24,7 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import Optional, List, Callable, Awaitable, TYPE_CHECKING
+from typing import Optional, List, Callable, Tuple, TYPE_CHECKING
 import asyncio
 
 import discord
@@ -62,13 +62,14 @@ class ConfirmationView(discord.ui.View):
             color=discord.Color.green()
         )
 
-        match: Awaitable[Match] = self.match_manager.add_match(player_1=self.player_1, player_2=self.player_2)
-        await asyncio.gather(
-            match,
+        async_results: Tuple[Match, discord.Message] = await asyncio.gather(
+            self.match_manager.add_match(player_1=self.player_1, player_2=self.player_2),
             challenge.edit_msg(embed=embed, view=None)
         )
 
-        asyncio.gather(
+        match: Match = async_results[0]
+
+        await asyncio.gather(
             interaction.response.send_message("Challenge accepted!", ephemeral=True, delete_after=5),
             match.send_reply(move=None, gif=False)
         )
@@ -112,10 +113,10 @@ class MoveView(View):
         valid_mask: List[bool] = match.gamestate.valid_mask
         for idx, validity in enumerate(valid_mask):
             if validity:
-                button: Button = Button(label=str(idx), style=discord.ButtonStyle.green)
+                button: Button = Button(label=str(idx+1), style=discord.ButtonStyle.success, row=idx//3)
                 button.callback = self.legal_move_gen(idx)
             else:
-                button: Button = Button(emoji='❌', style=discord.ButtonStyle.red)
+                button: Button = Button(emoji='❌', style=discord.ButtonStyle.red, disabled=True, row=idx//3)
                 button.callback = self.illegal_move_gen(idx)
             button.idx = idx
             self.add_item(button)

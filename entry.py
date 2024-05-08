@@ -45,8 +45,8 @@ DISCORD_API_TOKEN: str = os.getenv('DISCORD_BOT_API_TOKEN')
 
 intents: discord.Intents = discord.Intents.default()
 intents.message_content = True
-activity: discord.BaseActivity = discord.Game(name="Mancala")
-bot: commands.Bot = commands.Bot(command_prefix='!',
+activity: discord.BaseActivity = discord.Game(name="/challenge someone to a game of Mancala!")
+bot: commands.Bot = commands.Bot(command_prefix='>',
                                  intents=intents,
                                  activity=activity,
                                  status=discord.Status.online)
