@@ -71,7 +71,7 @@ class EngineExecutableError(MatchException):
     def __init__(self, message: Optional[str] = None, return_code: Optional[int] = None):
         self.message: Optional[str] = message
         self.return_code: Optional[int] = return_code
-        message: str = f'The engine executable subprocess failed with message "{message}" and return code {return_code}.'
+        message: str = f'The engine executable subprocess failed with message:\n\t{message}\nReturn code: {return_code}.'
         super().__init__(message)
 
 
@@ -94,5 +94,18 @@ class EngineSearchNotFound(EngineExecutableError):
     """An exception that is raised when and engine subprocess requested a search with an invalid engine type."""
 
     def __init__(self, engine: str):
+        self.engine: str = engine
         message: str = f'The engine type {engine} is not yet supported.'
         super().__init__(message, -3)
+
+
+class EngineSearchFailed(EngineExecutableError):
+    """An exception that is raised when and engine subprocess requested a search with an invalid engine type."""
+
+    def __init__(self, params: str, output):
+        self.params: str = params
+        self.output: str = output
+        message: str = f'Engine search with parameters: "{params}" failed with output: "{output}".'
+        if output == "-1":
+            message += " This output suggests that the game was terminal and a move could not be found."
+        super().__init__(message, 1)

@@ -30,7 +30,7 @@ import threading
 import queue
 
 
-from errors import EngineTimedOut, EngineFailedParse, EngineSearchNotFound
+from errors import EngineTimedOut, EngineFailedParse, EngineSearchNotFound, EngineSearchFailed
 from game_logic.gamestate import Gamestate
 
 if TYPE_CHECKING:
@@ -111,13 +111,19 @@ class EngineInterface:
         
         engine_index: int = EngineInterface.ENGINE_DICT[engine]
 
-        self.process.stdin.write(f"search {engine_index} {engine_depth}\n")
+        params: str = f"search {engine_index} {engine_depth}\n"
+        self.process.stdin.write(params)
         self.process.stdin.flush()
 
         out_msg: str = await self.read_line(timeout)
         out_msg = out_msg.strip()
 
         try:
-            return int(out_msg)
+            move: int = int(out_msg)
         except ValueError:
             raise EngineFailedParse(out_msg)
+        else:
+            if move == -1:
+                raise EngineSearchFailed(params.strip(), out_msg)
+            else:
+                return move
