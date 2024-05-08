@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 class MatchException(Exception):
     """Exception that's raised when an operation in the :class:`Match` fails.
 
-    These are usually for exceptions that happened during the challenge and match parsing, such as invalid player.
+    These are usually for exceptions during the challenge and match parsing, such as invalid player.
     """
 
     pass
@@ -49,7 +49,7 @@ class PlayerFound(MatchException):
 
 
 class PlayerNotFound(MatchException):
-    """An exception that is raised when a new game is requested with an unexisting challenge."""
+    """An exception that is raised when a new game is requested without a challenge."""
 
     def __init__(self, user: User):
         self.player = user

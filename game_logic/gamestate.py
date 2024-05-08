@@ -28,13 +28,35 @@ from typing import List, Tuple, Literal, Optional, TYPE_CHECKING
 
 from game_logic.ruleset import DefaultRuleset
 from game_logic.board import Board
-from game_logic.errors import InvalidMove, IllegalMove, UndefinedBehavior
+from game_logic.errors import InvalidMove, IllegalMove
 
 if TYPE_CHECKING:
     from PIL import Image
 
 
 class Gamestate:
+    """Represents a mancal game.
+
+    A Game stores information about the current game.
+
+
+    Attributes
+    -----------
+    valid_mask: List[:class:`bool`]
+        A mask representing which moves are valid.
+    current_player: Literal[0, 1]
+        The current player to move.
+    number_of_holes: int
+        A wrapper function to extract the number of holes from the ruleset.
+    game_over: :class:`bool`
+        If the game is over.
+    result: Optional[Listeral[0, 1, 2]]
+        The game's output:
+            :class:`None` representing a non-terminal game.
+            0 representing the first player's victory.
+            1 representing the second player's victory.
+    """
+
     __spec__: Tuple[str] = (
         '_current_player',
         '_rule_set',
@@ -76,7 +98,6 @@ class Gamestate:
     
     @property
     def game_over(self) -> bool:
-        return not any(self.valid_mask)
         return self._game_over
     
     @property
