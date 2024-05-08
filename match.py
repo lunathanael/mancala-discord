@@ -28,10 +28,10 @@ from typing import Dict, Set, Tuple, Optional, Any, List, TypedDict, Literal, Ca
 from io import BytesIO
 
 import discord
-from discord.ui import Button, View
 
 from errors import PlayerFound, PlayerNotFound, MatchNotOver
 from engine import EngineInterface
+from views import MoveView
 from game_logic.gamestate import Gamestate
 
 if TYPE_CHECKING:
@@ -43,46 +43,6 @@ class MessageKwargs(TypedDict):
     content: str
     embed: Embed
     file: File
-
-
-class MoveView(View):
-    def __init__(self, match: Match):
-        super().__init__(timeout=None)
-
-        self.match: Match = match
-        self.player: User = match.current_player
-
-        valid_mask: List[bool] = match.gamestate.valid_mask
-        for idx, validity in enumerate(valid_mask):
-            if validity:
-                button: Button = Button(label=str(idx), style=discord.ButtonStyle.green, )
-                button.callback = self.legal_move_gen(idx)
-            else:
-                button: Button = Button(emoji='❌', style=discord.ButtonStyle.red)
-                button.callback = self.illegal_move_gen(idx)
-            button.idx = idx
-            self.add_item(button)
-
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if interaction.user != self.player:
-            if interaction.user == self.match.other_player:
-                await interaction.response.send_message("Wait your turn!", ephemeral=True, delete_after=5)
-            else:
-                await interaction.response.send_message("You are not allowed to interact with this game.", ephemeral=True, delete_after=5)
-            return False
-        return True
-
-    def legal_move_gen(self, idx: int) -> Callable:
-        async def legal_move(interaction: discord.Interaction) -> None:
-            await interaction.message.edit(view=None)
-            await self.match.send_reply(move=idx, gif=True)
-            self.stop()
-        return legal_move
-    
-    def illegal_move_gen(self, idx: int) -> Callable:
-        async def illegal_move(interaction: discord.Interaction) -> None:
-            await interaction.response.send_message(f"The hole you selected:{idx} is empty!", ephemeral=True, delete_after=5)
-        return illegal_move
 
 
 class Match:
@@ -149,7 +109,7 @@ class Match:
             return self.player_2
         else:
             return self.player_1
-        
+
     @property
     def other_player(self) -> User:
         if self.gamestate.current_player:
@@ -163,22 +123,22 @@ class Match:
 
     @property
     def winner(self) -> Optional[User]:
-        if self.gamestate.result is None:
-            raise MatchNotOver
-
         results: List[Optional[User]] = [
             self.player_1 if self.player_1 is not None else self.bot,
             self.player_2 if self.player_2 is not None else self.bot,
             None
         ]
-        
-        return results[self.gamestate.result]
-        
+
+        if self.gamestate.result is None:
+            raise MatchNotOver
+        else:
+            return results[self.gamestate.result]
+
 
     @property
     def embed_color(self) -> Color:
         return self.current_player.accent_color if (self.current_player and self.current_player.accent_color) else Match.default_embed_colors()[self.gamestate.current_player]
-    
+
     def msg_content(self, move: Optional[Literal[0, 1, 2, 3, 4, 5]] = None, gif: bool = False) -> MessageKwargs:
         if move is not None:
             img: List[Image.Image] | Image.Image = self.gamestate.play_move(move, animate=gif)
@@ -241,7 +201,7 @@ class Match:
                 'view': view
             }
         )
-    
+
     async def add_emojis(self) -> None:
         valid_mask: List[bool] = self.gamestate.valid_mask
         for idx, validity in enumerate(valid_mask):
@@ -268,7 +228,6 @@ class Match:
     @staticmethod
     def default_embed_colors() -> Tuple[Color]:
         return (discord.Color.blue(), discord.Color.red())
-    
 
 
 class Challenge:
@@ -305,10 +264,10 @@ class Challenge:
     def __init__(self,
                  bot: User,
                  msg: Message,
-                 challenger: Optional[User] = None, 
-                 challenged: Optional[User] = None, 
-                 player_1: Optional[User] = None, 
-                 player_2: Optional[User] = None, 
+                 challenger: Optional[User] = None,
+                 challenged: Optional[User] = None,
+                 player_1: Optional[User] = None,
+                 player_2: Optional[User] = None,
                  **kwargs: Dict[str, Any]):
         self.bot: User = bot
         self.msg: Message = msg
@@ -353,12 +312,12 @@ class MatchManager:
         self.matches: Set[Match] = set()
         self.player_dict: Dict[User, Match | Challenge] = dict()
 
-    async def add_challenge(self, 
+    async def add_challenge(self,
                             msg: Message,
-                            challenger: Optional[User] = None, 
-                            challenged: Optional[User] = None, 
-                            player_1: Optional[User] = None, 
-                            player_2: Optional[User] = None, 
+                            challenger: Optional[User] = None,
+                            challenged: Optional[User] = None,
+                            player_1: Optional[User] = None,
+                            player_2: Optional[User] = None,
                             **kwargs: Dict[str, Any]) -> Challenge:
         """|coro|
 
@@ -406,16 +365,16 @@ class MatchManager:
             msg=msg,
             challenger=challenger,
             challenged=challenged,
-            player_1=player_1, 
-            player_2=player_2, 
+            player_1=player_1,
+            player_2=player_2,
             **kwargs)
 
         self.player_dict.update({player_1: challenge, player_2: challenge})
 
         return challenge
 
-    async def add_match(self, 
-                        player_1: Optional[User] = None, 
+    async def add_match(self,
+                        player_1: Optional[User] = None,
                         player_2: Optional[User] = None) -> Match:
         """|coro|
 
@@ -438,18 +397,18 @@ class MatchManager:
         PlayerFound
             At least one of the users requested for the match is occupied.
         """
-        
+
         challenge: Challenge = await self.find_challenge(player_1=player_1, player_2=player_2)
 
         match: Match = challenge.to_match()
 
         self.matches.add(match)
         self.player_dict.update({player_1: match, player_2: match})
-        
+
         return match
 
-    async def find_challenge(self, 
-                            player_1: Optional[User] = None, 
+    async def find_challenge(self,
+                            player_1: Optional[User] = None,
                             player_2: Optional[User] = None) -> Challenge:
         """|coro|
 
@@ -477,13 +436,13 @@ class MatchManager:
             raise PlayerNotFound(player_1)
         if player_2 and player_2 not in self.player_dict:
             raise PlayerNotFound(player_2)
-        
+
         challenge: Challenge = self.player_dict[player_1 if player_1 else player_2]
 
         return challenge
-    
-    async def delete_challenge(self, 
-                            player_1: Optional[User] = None, 
+
+    async def delete_challenge(self,
+                            player_1: Optional[User] = None,
                             player_2: Optional[User] = None) -> None:
         """|coro|
 
@@ -501,13 +460,16 @@ class MatchManager:
         PlayerNotFound
             At least one of the users do not have a pending challenge.
         """
-        
+
         if player_1:
             self.player_dict.pop(player_1, None)
         if player_2:
             self.player_dict.pop(player_2, None)
 
-    async def edit_challenge_msg(self, player_1: Optional[User], player_2: Optional[User], **kwargs) -> Message:
+    async def edit_challenge_msg(self,
+                                 player_1: Optional[User],
+                                 player_2: Optional[User],
+                                 **kwargs) -> Message:
         """|coro|
 
         Adds a match to the match manager.

@@ -24,7 +24,7 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import Dict, Literal, Optional, TYPE_CHECKING
+from typing import Tuple, Dict, Literal, Optional, TYPE_CHECKING
 import subprocess
 import threading
 import queue
@@ -38,6 +38,11 @@ if TYPE_CHECKING:
 
 
 class EngineInterface:
+    __spec__: Tuple[str] = (
+        'process',
+        'output_queue',
+        'out_thread',
+    )
 
     ENGINE_DICT: Dict[str, int] = {
         'human': 0,
@@ -47,7 +52,7 @@ class EngineInterface:
         'simple_threaded_ab': 4,
 	    'heuristic_ab': 5
     }
-    
+
     @staticmethod
     def enqueue_output(out: subprocess.Popen.stdout, output_queue: queue.Queue):
         for line in iter(out.readline, ''):
@@ -62,17 +67,17 @@ class EngineInterface:
                                                text=True,
                                                bufsize=1)
         self.output_queue: queue.Queue = queue.Queue()
-        self.stdout_thread: threading.Thread = threading.Thread(target=EngineInterface.enqueue_output, 
+        self.out_thread: threading.Thread = threading.Thread(target=EngineInterface.enqueue_output,
                                                                 args=(self.process.stdout, self.output_queue),
                                                                 daemon=True)
-        self.stdout_thread.start()
+        self.out_thread.start()
 
     def __del__(self) -> int:
         self.process.stdin.close()
         self.process.stdout.close()
         self.process.terminate()
         return self.process.wait()
-    
+
     async def parse_gamestate(self, game_state: Gamestate) -> None:
         board_str: str = str(game_state)
 
@@ -91,16 +96,16 @@ class EngineInterface:
             return output
         except queue.Empty as e:
             raise EngineTimedOut from e
-        
+
     async def search(self, *,
-                     game_state: Optional[Gamestate] = None, 
+                     game_state: Optional[Gamestate] = None,
                      engine: Literal['human',
                                     'random',
                                     'min_max', 
                                     'alpha_beta', 
                                     'simple_threaded_ab',
                                     'heuristic_ab'] = 'alpha_beta', 
-                     engine_depth: int = 6, 
+                     engine_depth: int = 6,
                      timeout: Optional[float] = None) -> int:
 
         if game_state is not None:
@@ -108,7 +113,7 @@ class EngineInterface:
 
         if engine not in EngineInterface.ENGINE_DICT:
             raise EngineSearchNotFound(engine)
-        
+
         engine_index: int = EngineInterface.ENGINE_DICT[engine]
 
         params: str = f"search {engine_index} {engine_depth}\n"
@@ -120,8 +125,8 @@ class EngineInterface:
 
         try:
             move: int = int(out_msg)
-        except ValueError:
-            raise EngineFailedParse(out_msg)
+        except ValueError as e:
+            raise EngineFailedParse(out_msg) from e
         else:
             if move == -1:
                 raise EngineSearchFailed(params.strip(), out_msg)
