@@ -154,11 +154,8 @@ class Board:
 
     def __str__(self) -> str:
         board_count: List[int] = []
-        for hole in self.holes[0]:
-            board_count.append(len(hole))
-        board_count.append(len(self.store[0]))
-        for hole in reversed(self.holes[1]):
-            board_count.append(len(hole))
-        board_count.append(len(self.store[1]))
 
+        for hole_idx in range(self.rule_set['NUMBER_OF_TOTAL_HOLES']):
+            board_count.append(self[hole_idx])
+            
         return ' '.join(map(str, board_count))

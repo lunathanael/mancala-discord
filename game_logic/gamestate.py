@@ -91,14 +91,6 @@ class Gamestate:
         opposite_hole_index: int = ((2 * self._rule_set['PLAYER_TO_STORE_INDEX'][0]) - hole_index)
         self._board[self._rule_set['PLAYER_TO_STORE_INDEX'][side]] += self._board[opposite_hole_index]
         self._board[opposite_hole_index] = 0
-
-    def relative_index_to_absolute(self, relative_hole_index: int):
-        if self.current_player == 1:
-            relative_hole_index += self._rule_set['NUMBER_OF_HOLES_PER_SIDE'] + 1
-        return relative_hole_index
-    
-    def absolute_index_to_relative(self, absolute_hole_index: int):
-        return absolute_hole_index % (self._rule_set['NUMBER_OF_HOLES_PER_SIDE'] + 1)
     
     def _play_move(self, relative_hole_index: int, side: Optional[Literal[0, 1]] = None) -> Image.Image:
         player: Literal[0, 1] = side if side is not None else self._current_player

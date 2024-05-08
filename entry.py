@@ -174,7 +174,7 @@ async def challenge(ctx: commands.Context, opponent: discord.User, first: Option
         await ctx.reply(f"I don't think {opponent.mention} know how to play. 😕")
         return
     elif opponent == ctx.author:
-        await ctx.reply(f"You can't challenge yourself. (for now) 😅")
+        await ctx.reply("You can't challenge yourself. (for now) 😅")
         return
     
     player_1: Optional[discord.User] = ctx.author if first else opponent
