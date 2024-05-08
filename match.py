@@ -28,10 +28,9 @@ from typing import Dict, Set, Tuple, Optional, Any, List, TypedDict, Literal, Ca
 from io import BytesIO
 
 import discord
-from discord.ext import commands
 from discord.ui import Button, View
 
-from errors import PlayerFound, PlayerNotFound
+from errors import PlayerFound, PlayerNotFound, MatchNotOver
 from engine import EngineInterface
 from game_logic.gamestate import Gamestate
 
@@ -125,8 +124,8 @@ class Match:
     INVALID_EMOJIS: List[str] = ["❤", "🩷", "🧡", "💛", "💚", "💙"]
 
     def __init__(self, bot: User, msg: Message, player_1: Optional[User] = None, player_2: Optional[User] = None, **kwargs: Dict[str, Any]):
-        self.msg: Message = msg
         self.bot: User = bot
+        self.msg: Message = msg
         self.player_1: Optional[User] = player_1
         self.player_2: Optional[User] = player_2
 
@@ -157,6 +156,24 @@ class Match:
             return self.player_1
         else:
             return self.player_2
+
+    @property
+    def terminal(self) -> bool:
+        return self.gamestate.game_over
+
+    @property
+    def winner(self) -> Optional[User]:
+        if self.gamestate.result is None:
+            raise MatchNotOver
+
+        results: List[Optional[User]] = [
+            self.player_1 if self.player_1 is not None else self.bot,
+            self.player_2 if self.player_2 is not None else self.bot,
+            None
+        ]
+        
+        return results[self.gamestate.result]
+        
 
     @property
     def embed_color(self) -> Color:
@@ -206,6 +223,16 @@ class Match:
 
         view: Optional[MoveView] = MoveView(self) if self.current_player else None
 
+        if self.terminal:
+            content: str = f"{self.player_1.mention if self.player_1 is not None else self.bot} {self.player_2.mention if self.player_2 is not None else self.bot}"
+            view = None
+            winner: Optional[User] = self.winner
+
+            if winner is not None:
+                embed.description = f"Match over.\nThe game winner is {winner.mention}!!\n"
+            else:
+                embed.description = f"Match over.\nThe game ended in a tie!\n"
+
         return MessageKwargs(
             {
                 'content': content,
@@ -224,8 +251,6 @@ class Match:
                 await self.msg.add_reaction(Match.INVALID_EMOJIS[idx])
 
     async def send_reply(self, move: Optional[Literal[0, 1, 2, 3, 4, 5]] = None, gif: bool = True) -> None:
-        if self.gamestate.game_over:
-            pass
 
         self.msg = await self.msg.reply(**self.msg_content(move=move, gif=gif))
 
@@ -243,6 +268,7 @@ class Match:
     @staticmethod
     def default_embed_colors() -> Tuple[Color]:
         return (discord.Color.blue(), discord.Color.red())
+    
 
 
 class Challenge:
@@ -273,6 +299,8 @@ class Challenge:
         'player_2',
         'kwargs',
     )
+
+    terminal: bool = False
 
     def __init__(self,
                  bot: User,
@@ -363,9 +391,15 @@ class MatchManager:
         """
 
         if player_1 and player_1 in self.player_dict:
-            raise PlayerFound(player_1)
+            if self.player_dict[player_1].terminal:
+                self.player_dict.pop(player_1)
+            else:
+                raise PlayerFound(player_1)
         if player_2 and player_2 in self.player_dict:
-            raise PlayerFound(player_2)
+            if self.player_dict[player_2].terminal:
+                self.player_dict.pop(player_2)
+            else:
+                raise PlayerFound(player_2)
 
         challenge: Challenge = Challenge(
             bot=self.bot,

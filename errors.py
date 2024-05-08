@@ -57,6 +57,14 @@ class PlayerNotFound(MatchException):
         super().__init__(message)
 
 
+class MatchNotOver(MatchException):
+    """An exception that is raised when a the game result is queried when the game is not terminal."""
+
+    def __init__(self):
+        message: str = "The match queried is not yet terminal."
+        super().__init__(message)
+
+
 class EngineExecutableError(MatchException):
     """An exception that is raised when and engine subprocess encountered a Process Error."""
 

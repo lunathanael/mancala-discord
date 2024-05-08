@@ -49,7 +49,7 @@ class Gamestate:
         self._board = Board(self._rule_set)
 
         self._game_over: bool = False
-        self._result: Optional[int] = None
+        self._result: Optional[Literal[0, 1, 2]] = None
 
     def play_move(self, move: Literal[0, 1, 2, 3, 4, 5], animate: bool = True) -> List[Image.Image] | Image.Image:
         if move >= 6 or move < 0:
@@ -76,7 +76,13 @@ class Gamestate:
     
     @property
     def game_over(self) -> bool:
+        return not any(self.valid_mask)
         return self._game_over
+    
+    @property
+    def result(self) -> Optional[Literal[0, 1, 2]]:
+        return 1 - self.current_player
+        return self._result
     
     def next_player(self) -> None:
         self._current_player = 1 - self._current_player
