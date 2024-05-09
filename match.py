@@ -131,9 +131,8 @@ class Match:
 
         if self.gamestate.result is None:
             raise MatchNotOver
-        else:
-            return results[int(self.gamestate.result)]
 
+        return results[int(self.gamestate.result)]
 
     @property
     def embed_color(self) -> Color:
@@ -149,16 +148,16 @@ class Match:
             gif = False
             img: Image.Image = self.gamestate.get_board()
 
-        content: str = f"{self.current_player.mention}, it's your turn!" if self.current_player else "I'm thinking, give me a second..."
+        content: str = f"{self.current_player.mention}, **it's your turn!**" if self.current_player else "I'm thinking, give me a second..."
         description: str = ""
         if self.previous_player:
-            description += f"{self.previous_player} played hole {move + 1}.\n"
+            description += f"# {self.previous_player} played hole {move + 1}.\n"
         else:
-            description += "The game has started!\n"
+            description += "# The game has started!\n"
         if self.current_player:
-            description += "Choose a move!\n"
+            description += "## **Choose a move!**\n"
         else:
-            description += "Be patient, I'm a bit slow.\n"
+            description += "## Be patient, I'm a bit slow.\n"
 
         embed: discord.Embed = discord.Embed(
             title=f"{self.player_1.display_name if self.player_1 else f'AI level {self.difficulty}'} vs. {self.player_2.display_name if self.player_2 else f'AI level {self.difficulty}'}",
@@ -187,14 +186,15 @@ class Match:
         view: Optional[MoveView] = MoveView(self) if self.current_player else None
 
         if self.terminal:
-            content: str = f"{self.player_1.mention if self.player_1 is not None else self.bot} {self.player_2.mention if self.player_2 is not None else self.bot}"
+            content: str = f"{self.player_1.mention if self.player_1 is not None else self.bot.mention} {self.player_2.mention if self.player_2 is not None else self.bot.mention}"
             view = None
             winner: Optional[User] = self.winner
+            score: str = f"**{self.gamestate.score(0)} to {self.gamestate.score(1)}**"
 
             if winner is not None:
-                embed.description = f"Match over.\nThe game winner is {winner.mention}!!\n"
+                embed.description = f"# Match over.\n## {score}\n### **The game winner is {winner.mention}!!**\n"
             else:
-                embed.description = "Match over.\nThe game ended in a tie!\n"
+                embed.description = f"# Match over.\n## {score}\n### The game ended in a tie!\n"
 
         return MessageKwargs(
             {
@@ -217,7 +217,7 @@ class Match:
 
         self.msg = await self.msg.reply(**self.msg_content(move=move, gif=gif))
 
-        if self.current_player is None:
+        if self.current_player is None and not self.terminal:
             await self.engine_reply(gif=gif)
 
     async def engine_reply(self, gif: bool = True) -> Message:

@@ -63,6 +63,8 @@ class Gamestate:
         '_board',
         '_game_over',
         '_result',
+        '_score_1',
+        '_score_2',
     )
 
     def __init__(self):
@@ -73,18 +75,8 @@ class Gamestate:
         self._game_over: bool = False
         self._result: Optional[Literal[0, 1, 2]] = None
 
-    def play_move(self,
-                  move: Literal[0, 1, 2, 3, 4, 5],
-                  animate: bool = True) -> List[Image.Image] | Image.Image:
-        if move >= 6 or move < 0:
-            raise InvalidMove(move)
-        if not self.valid_mask[move]:
-            raise IllegalMove(move)
-
-        if animate:
-            return self._animate_move(move)
-        else:
-            return self._play_move(move)
+        self._score_1: Optional[int] = None
+        self._score_2: Optional[int] = None
 
     @property
     def valid_mask(self) -> List[bool]:
@@ -106,6 +98,12 @@ class Gamestate:
     def result(self) -> Optional[Literal[0, 1, 2]]:
         return self._result
 
+    def score(self, side: Literal[0, 1]) -> int:
+        if side:
+            return self._score_1
+        else:
+            return self._score_2
+
     def terminate(self) -> None:
         self._game_over = True
 
@@ -115,13 +113,69 @@ class Gamestate:
     def get_board(self, side: Optional[Literal[0, 1]] = None, digit_size: int = 35) -> Image.Image:
         return self._board.get_board_image(side if side else self._current_player, digit_size)
 
-    def _do_capture(self, hole_index: int, side: Literal[0, 1]) -> None:
-        if self._rule_set['capture_both']:
-            self._board[self._rule_set['PLAYER_TO_STORE_INDEX'][side]] += self._board[hole_index]
-            self._board[hole_index] = 0
+    def play_move(self,
+                  move: Literal[0, 1, 2, 3, 4, 5],
+                  animate: bool = True) -> List[Image.Image] | Image.Image:
+        if move >= 6 or move < 0:
+            raise InvalidMove(move)
+        if not self.valid_mask[move]:
+            raise IllegalMove(move)
+
+        if animate:
+            img: List[Image.Image] = self._animate_move(move)
+        else:
+            img: Image.Image = self._play_move(move)
+
+        return self._check_terminal(img, animate)
+
+    def _check_terminal(self,
+                        img: List[Image.Image] | Image.Image,
+                        animate: bool) -> List[Image.Image] | Image.Image:
+        side_1: List[Board.Hole] = self._board.get_holes(0)
+        side_2: List[Board.Hole] = self._board.get_holes(1)
+
+        if not (any(len(hole) for hole in side_1) and any(len(hole) for hole in side_2)):
+            self.terminate()
+            seeds: int = 0
+            for i in range(self._rule_set['NUMBER_OF_TOTAL_HOLES']):
+                if i in self._rule_set['PLAYER_TO_STORE_INDEX']:
+                    self._board[i] += seeds
+                    seeds = 0
+                else:
+                    seeds += self._board[i]
+                    self._board[i] = 0
+
+            self._score_1: int = len(self._board.get_store(0))
+            self._score_2: int = len(self._board.get_store(1))
+
+            if self._score_1 == self._score_2:
+                self._result = 2
+            elif self._score_1 < self._score_2:
+                self._result = 1
+            else:
+                self._result = 0
+            
+            if animate:
+                img.append(self._board.get_board_image(self.current_player))
+            else:
+                img = self._board.get_board_image(self.current_player)
+        return img
+
+    def _do_capture(self, hole_index: int, side: Literal[0, 1]) -> bool:
         opposite_hole_index: int = (2 * self._rule_set['PLAYER_TO_STORE_INDEX'][0]) - hole_index
-        self._board[self._rule_set['PLAYER_TO_STORE_INDEX'][side]] += self._board[opposite_hole_index]
+        seeds: int = self._board[opposite_hole_index]
+        if not (self.is_valid_move(hole_index) and seeds):
+            return False
+
+        self.next_player()
+
         self._board[opposite_hole_index] = 0
+        if self._rule_set['capture_both']:
+            seeds += self._board[hole_index]
+            self._board[hole_index] = 0
+
+        self._board[self._rule_set['PLAYER_TO_STORE_INDEX'][side]] += seeds
+        return True
 
     def _play_move(self, relative_hole_index: int, side: Optional[Literal[0, 1]] = None) -> Image.Image:
         player: Literal[0, 1] = side if side is not None else self._current_player
@@ -202,13 +256,13 @@ class Gamestate:
             if self._rule_set['allow_captures']:
                 if self._rule_set['capture_on_one_cycle']:
                     if first_cycle:
-                        self._do_capture(hole_index, player)
+                        if self._do_capture(hole_index, player):
+                            board_stack.append(self._board)
+                            return [board.get_board_image(opp_player) for board in board_stack]
+                else:
+                    if self._do_capture(hole_index, player):
                         board_stack.append(self._board)
                         return [board.get_board_image(opp_player) for board in board_stack]
-                else:
-                    self._do_capture(hole_index, player)
-                    board_stack.append(self._board)
-                    return [board.get_board_image(opp_player) for board in board_stack]
         else:
             if self._rule_set['do_relay_sowing']:
                 relative_hole_index: int = self.absolute_index_to_relative(hole_index)
@@ -217,19 +271,6 @@ class Gamestate:
         self.next_player()
         return [board.get_board_image(opp_player) for board in board_stack]
 
-    def _do_capture(self, hole_index: int, side: Literal[0, 1]) -> None:
-        if self._rule_set['capture_both']:
-            seeds: int = self._board[hole_index]
-            self._board[hole_index] = 0
-            self._board[self._rule_set['PLAYER_TO_STORE_INDEX'][side]] += seeds
-
-        opposite_hole_index: int = (2 * self._rule_set['PLAYER_TO_STORE_INDEX'][0]) - hole_index
-        seeds: int = self._board[opposite_hole_index]
-        self._board[opposite_hole_index] = 0
-        self._board[self._rule_set['PLAYER_TO_STORE_INDEX'][side]] += seeds
-
-        self.next_player()
-
     def relative_index_to_absolute(self, relative_hole_index: int):
         if self._current_player == 1:
             relative_hole_index += self._rule_set['NUMBER_OF_HOLES_PER_SIDE'] + 1
@@ -237,6 +278,11 @@ class Gamestate:
 
     def absolute_index_to_relative(self, absolute_hole_index: int):
         return absolute_hole_index % (self._rule_set['NUMBER_OF_HOLES_PER_SIDE'] + 1)
+
+    def is_valid_move(self, absolute_hole_index: int) -> bool:
+        l_bound: int = self._rule_set['PLAYER_TO_STORE_INDEX'][0] + 1 if self.current_player else 0
+        r_bound: int = l_bound + self._rule_set['NUMBER_OF_HOLES_PER_SIDE']
+        return l_bound <= absolute_hole_index <= r_bound
 
     def __str__(self) -> str:
         return str(self._board) + ' ' + str(self.current_player)

@@ -119,9 +119,12 @@ class Board:
         im.paste(255, mask)
         im.info['transparency'] = 255
         return im
-        
-    def get_holes(self, side: Literal[0, 1]) -> List[int]:
+
+    def get_holes(self, side: Literal[0, 1]) -> List[Hole]:
         return self.holes[side]
+
+    def get_store(self, side: Literal[0, 1]) -> Hole:
+        return self.store[side]
 
     def __getitem__(self, hole_index: int) -> int:
         if hole_index < 0 or hole_index >= self.rule_set['NUMBER_OF_TOTAL_HOLES']:

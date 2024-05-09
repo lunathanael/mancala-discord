@@ -122,9 +122,9 @@ async def challenge(ctx: commands.Context,
     else:
         embed: discord.Embed = discord.Embed(
             title="Challenge request",
-            description=f"**{ctx.author.display_name}** has challenged **{opponent.display_name}** to a board game!\n\n"
-                        f"{player_1.mention} vs {player_2.mention}\n\n"
-                        f"Do you accept the challenge?",
+            description=f"# **{ctx.author.display_name}** has challenged **{opponent.display_name}** to a board game!\n\n"
+                        f"## {player_1.mention} vs {player_2.mention}\n\n"
+                        f"### Do you accept the challenge?",
             color=discord.Color.blue())
 
         view: ConfirmationView = ConfirmationView(match_manager=match_manager, player_1=player_1, player_2=player_2)
