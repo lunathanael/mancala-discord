@@ -60,7 +60,7 @@ class Board:
 
     Hole: TypeAlias = List[Seed]
     Coordinate: TypeAlias = Tuple[int, int]
-    board_ico: Image.Image = Image.open(f'assets/board.png')
+    board_ico: Image.Image = Image.open('assets/board.png')
     seed_icos: List[Image.Image] = [Image.open(join('assets/', f)) for f in listdir('assets/') if "seed" in f]
 
     def __init__(self, rule_set: Ruleset, variance: int = 15, size: int = 80):
@@ -71,7 +71,7 @@ class Board:
         self.holes: Tuple[List[Board.Hole], List[Board.Hole]] = ([[], [], [], [], [], []], [[], [], [], [], [], []])
         for x in range(2):
             for y in range(6):
-                for z in range(rule_set['seeds_per_hole']):
+                for _ in range(rule_set['seeds_per_hole']):
                     offset: int = (randint(-variance, variance), randint(-variance, variance), randint(0, 360))
                     costume: Image.Image = self.seed_icos[randint(0, len(self.seed_icos) - 1)].resize((size, size))
                     self.holes[x][y].append(Seed(costume, offset))
@@ -129,7 +129,7 @@ class Board:
     def __getitem__(self, hole_index: int) -> int:
         if hole_index < 0 or hole_index >= self.rule_set['NUMBER_OF_TOTAL_HOLES']:
             raise InvalidMove
-        
+
         side: Literal[0, 1] = hole_index > self.rule_set['PLAYER_TO_STORE_INDEX'][0]
         relative_hole_index: int = hole_index % (self.rule_set['NUMBER_OF_HOLES_PER_SIDE'] + 1)
 
@@ -140,15 +140,15 @@ class Board:
     def __setitem__(self, hole_index: int, value: int) -> None:
         if hole_index < 0 or hole_index >= self.rule_set['NUMBER_OF_TOTAL_HOLES']:
             raise InvalidMove
-        
+
         side: Literal[0, 1] = hole_index > self.rule_set['PLAYER_TO_STORE_INDEX'][0]
         relative_hole_index: int = hole_index % (self.rule_set['NUMBER_OF_HOLES_PER_SIDE'] + 1)
-        
+
         hole: Board.Hole = self.store[side] if relative_hole_index == self.rule_set['NUMBER_OF_HOLES_PER_SIDE'] else self.holes[side][relative_hole_index]
 
         while value > len(hole):
             hole.append(self.buffer.pop(-1))
-        
+
         while value < len(hole):
             self.buffer.append(hole.pop(-1))
 
@@ -160,5 +160,5 @@ class Board:
 
         for hole_idx in range(self.rule_set['NUMBER_OF_TOTAL_HOLES']):
             board_count.append(self[hole_idx])
-            
+
         return ' '.join(map(str, board_count))

@@ -112,7 +112,7 @@ class EngineInterface:
             await self.parse_gamestate(game_state)
 
         if engine_depth <= 0:
-            engine = 'random'        
+            engine = 'random'
 
         if engine not in EngineInterface.ENGINE_DICT:
             raise EngineSearchNotFound(engine)
