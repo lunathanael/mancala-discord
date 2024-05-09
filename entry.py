@@ -126,6 +126,7 @@ async def challenge(ctx: commands.Context,
                         f"## {player_1.mention} vs {player_2.mention}\n\n"
                         f"### Do you accept the challenge?",
             color=discord.Color.blue())
+        embed.set_footer(text="Made with ❤️ by utop1a.", icon_url=r"https://imgur.com/a/96jpwM5")
 
         view: ConfirmationView = ConfirmationView(match_manager=match_manager, player_1=player_1, player_2=player_2)
         try:
@@ -148,6 +149,7 @@ async def challenge(ctx: commands.Context,
             description="You have a challenge pending or are already in a match!",
             color=discord.Color.red()
         )
+        embed.set_footer(text="Made with ❤️ by utop1a.", icon_url=r"https://imgur.com/a/96jpwM5")
         await msg.edit(content=None, embed=embed, view=None)
     else:
         if opponent is None or player_1 == player_2:

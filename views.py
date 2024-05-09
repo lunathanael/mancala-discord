@@ -61,6 +61,7 @@ class ConfirmationView(discord.ui.View):
             description=f"**{challenge.challenged.display_name}** accepted **{challenge.challenger.display_name}**'s challenge.\n\n",
             color=discord.Color.green()
         )
+        embed.set_footer(text="Made with ❤️ by utop1a.", icon_url=r"https://imgur.com/a/96jpwM5")
 
         async_results: Tuple[Match, discord.Message] = await asyncio.gather(
             self.match_manager.add_match(player_1=self.player_1, player_2=self.player_2),
@@ -90,6 +91,7 @@ class ConfirmationView(discord.ui.View):
                 description=f"**{challenge.challenger.display_name}** canceled their challenge.\n\n",
                 color=discord.Color.red()
             )
+            embed.set_footer(text="Made with ❤️ by utop1a.", icon_url=r"https://imgur.com/a/96jpwM5")
             response_msg: str = "Challenge canceled."
         else:
             embed: discord.Embed = discord.Embed(
@@ -97,6 +99,7 @@ class ConfirmationView(discord.ui.View):
                 description=f"**{challenge.challenged.display_name}** rejected **{challenge.challenger.display_name}**'s challenge.\n\n",
                 color=discord.Color.red()
             )
+            embed.set_footer(text="Made with ❤️ by utop1a.", icon_url=r"https://imgur.com/a/96jpwM5")
             response_msg: str = "Challenge rejected."
 
         await asyncio.gather(

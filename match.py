@@ -164,6 +164,7 @@ class Match:
             description=description,
             color=self.embed_color
         )
+        embed.set_footer(text="Made with ❤️ by utop1a.", icon_url=r"https://imgur.com/a/96jpwM5")
 
         self.previous_player = self.current_player.mention if self.current_player else self.bot.mention
 
