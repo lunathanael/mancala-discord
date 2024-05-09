@@ -31,7 +31,7 @@ import discord
 from discord.ui import Button, View
 
 if TYPE_CHECKING:
-    from match import MatchManager, Challenge, Match
+    from match import MatchManager, Challenge, Match, MessageKwargs
 
 
 class ConfirmationView(discord.ui.View):
@@ -148,3 +148,25 @@ class MoveView(View):
         async def illegal_move(interaction: discord.Interaction) -> None:
             await interaction.response.send_message(f"The hole you selected:{idx} is empty!", ephemeral=True, delete_after=5)
         return illegal_move
+
+
+class GameoverView(View):
+    def __init__(self, match: Match):
+        super().__init__(timeout=None)
+
+        self.match: Match = match
+        self.msg: Optional[discord.Message] = None
+
+    @discord.ui.button(label="Rematch", style=discord.ButtonStyle.secondary)
+    async def rematch_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        pass
+
+    @discord.ui.button(label="Full GIF", style=discord.ButtonStyle.secondary)
+    async def gif_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if self.msg is None:
+            await interaction.response.defer(thinking=True)
+            kwargs: MessageKwargs = await self.match.game_gif()
+            self.msg = await interaction.followup.send(**kwargs)
+        else:
+            await interaction.response.defer(thinking=False)
+            await self.msg.reply("Here is the GIF to the full game!", delete_after=5)

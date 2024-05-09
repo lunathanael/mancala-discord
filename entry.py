@@ -125,7 +125,8 @@ async def challenge(ctx: commands.Context,
             description=f"# **{ctx.author.display_name}** has challenged **{opponent.display_name}** to a board game!\n\n"
                         f"## {player_1.mention} vs {player_2.mention}\n\n"
                         f"### Do you accept the challenge?",
-            color=discord.Color.blue())
+            color=discord.Color.blue()
+        )
         embed.set_footer(text="Made with ❤️ by utop1a.", icon_url=r"https://imgur.com/a/96jpwM5")
 
         view: ConfirmationView = ConfirmationView(match_manager=match_manager, player_1=player_1, player_2=player_2)

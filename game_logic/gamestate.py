@@ -25,6 +25,8 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 from typing import List, Tuple, Literal, Optional, TYPE_CHECKING
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 from game_logic.ruleset import DefaultRuleset
 from game_logic.board import Board
@@ -100,6 +102,15 @@ class Gamestate:
     @property
     def result(self) -> Optional[Literal[0, 1, 2]]:
         return self._result
+
+    async def board_stack(self, side: Optional[Literal[0, 1]] = None, digit_size: int = 35) -> List[Image.Image]:
+        loop: asyncio.AbstractEventLoop = asyncio.get_running_loop()
+        with ThreadPoolExecutor() as pool:
+            imgs = await loop.run_in_executor(
+                pool,
+                lambda: [board.get_board_image(side if side else self._current_player, digit_size) for board in self._board_stack]
+            )
+        return imgs
 
     def score(self, side: Literal[0, 1]) -> int:
         if side:

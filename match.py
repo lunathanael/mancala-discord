@@ -31,7 +31,7 @@ import discord
 
 from errors import PlayerFound, PlayerNotFound, MatchNotOver
 from engine import EngineInterface
-from views import MoveView
+from views import MoveView, GameoverView
 from game_logic.gamestate import Gamestate
 
 if TYPE_CHECKING:
@@ -141,6 +141,41 @@ class Match:
     def terminate(self) -> None:
         self.gamestate.terminate()
 
+    async def game_gif(self) -> Message:
+        if not self.terminal:
+            raise MatchNotOver
+
+        embed: discord.Embed = discord.Embed(
+            title=f"{self.player_1.display_name if self.player_1 else f'AI level {self.difficulty}'} vs. {self.player_2.display_name if self.player_2 else f'AI level {self.difficulty}'}",
+            color=self.embed_color
+        )
+        embed.set_footer(text="Made with ❤️ by utop1a.", icon_url=r"https://imgur.com/a/96jpwM5")
+
+        imgs: List[Image.Image] = await self.gamestate.board_stack()
+        output_gif: BytesIO = BytesIO()
+        imgs[0].save(output_gif, save_all=True, format='GIF', append_images=imgs, duration=350)
+        output_gif.seek(0)
+
+        file: discord.File = discord.File(output_gif, filename="image.gif")
+        embed.set_image(url="attachment://image.gif")
+
+        content: str = f"Match between {self.player_1.display_name if self.player_1 is not None else self.bot.display_name} and {self.player_2.display_name if self.player_2 is not None else self.bot.display_name}"
+        winner: Optional[User] = self.winner
+        score: str = f"**{self.gamestate.score(0)} to {self.gamestate.score(1)}**"
+
+        if winner is not None:
+            embed.description = f"## {score}\n### **The game winner was {winner.display_name}.**\n"
+        else:
+            embed.description = f"## {score}\n### The game ended in a tie.\n"
+
+        return MessageKwargs(
+            {
+                'content': content,
+                'embed': embed,
+                'file': file,
+            }
+        )
+
     def msg_content(self, move: Optional[Literal[0, 1, 2, 3, 4, 5]] = None, gif: bool = False) -> MessageKwargs:
         if move is not None:
             img: List[Image.Image] | Image.Image = self.gamestate.play_move(move, animate=gif)
@@ -169,26 +204,26 @@ class Match:
         self.previous_player = self.current_player.mention if self.current_player else self.bot.mention
 
         if gif:
-            output_gif = BytesIO()
+            output_gif: BytesIO = BytesIO()
             img[0].save(output_gif, save_all=True, format='GIF', append_images=img, duration=400)
             output_gif.seek(0)
 
-            file = discord.File(output_gif, filename="image.gif")
+            file: discord.File = discord.File(output_gif, filename="image.gif")
             embed.set_image(url="attachment://image.gif")
         else:
             file_image: Image.Image = self.gamestate.get_board()
             output_image: BytesIO = BytesIO()
-            file_image.save(output_image, save_all=True, format='png')
+            file_image.save(output_image, format='GIF')
             output_image.seek(0)
 
-            file: discord.File = discord.File(output_image, filename="image.png")
-            embed.set_image(url="attachment://image.png")
+            file: discord.File = discord.File(output_image, filename="image.gif")
+            embed.set_image(url="attachment://image.gif")
 
         view: Optional[MoveView] = MoveView(self) if self.current_player else None
 
         if self.terminal:
             content: str = f"{self.player_1.mention if self.player_1 is not None else self.bot.mention} {self.player_2.mention if self.player_2 is not None else self.bot.mention}"
-            view = None
+            view = GameoverView(self)
             winner: Optional[User] = self.winner
             score: str = f"**{self.gamestate.score(0)} to {self.gamestate.score(1)}**"
 
