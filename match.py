@@ -151,7 +151,7 @@ class Match:
         )
         embed.set_footer(text="Made with ❤️ by utop1a.", icon_url=r"https://imgur.com/a/96jpwM5")
 
-        imgs: List[Image.Image] = await self.gamestate.board_stack()
+        imgs: List[Image.Image] = await self.gamestate.stack_all_boards()
         output_gif: BytesIO = BytesIO()
         imgs[0].save(output_gif, save_all=True, format='GIF', append_images=imgs, duration=350)
         output_gif.seek(0)
@@ -176,12 +176,12 @@ class Match:
             }
         )
 
-    def msg_content(self, move: Optional[Literal[0, 1, 2, 3, 4, 5]] = None, gif: bool = False) -> MessageKwargs:
+    async def msg_content(self, move: Optional[Literal[0, 1, 2, 3, 4, 5]] = None, gif: bool = False) -> MessageKwargs:
         if move is not None:
-            img: List[Image.Image] | Image.Image = self.gamestate.play_move(move, animate=gif)
+            img: List[Image.Image] | Image.Image = await self.gamestate.play_move(move, animate=gif)
         else:
             gif = False
-            img: Image.Image = self.gamestate.get_board()
+            img: Image.Image = await self.gamestate.get_board()
 
         content: str = f"{self.current_player.mention}, **it's your turn!**" if self.current_player else "I'm thinking, give me a second..."
         description: str = ""
@@ -211,7 +211,7 @@ class Match:
             file: discord.File = discord.File(output_gif, filename="image.gif")
             embed.set_image(url="attachment://image.gif")
         else:
-            file_image: Image.Image = self.gamestate.get_board()
+            file_image: Image.Image = await self.gamestate.get_board()
             output_image: BytesIO = BytesIO()
             file_image.save(output_image, format='GIF')
             output_image.seek(0)
@@ -250,8 +250,8 @@ class Match:
                 await self.msg.add_reaction(Match.INVALID_EMOJIS[idx])
 
     async def send_reply(self, move: Optional[Literal[0, 1, 2, 3, 4, 5]] = None, gif: bool = True) -> None:
-
-        self.msg = await self.msg.reply(**self.msg_content(move=move, gif=gif))
+        kwargs: MessageKwargs = await self.msg_content(move=move, gif=gif)
+        self.msg = await self.msg.reply(**kwargs)
 
         if self.current_player is None and not self.terminal:
             await self.engine_reply(gif=gif)

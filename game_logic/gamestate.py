@@ -24,7 +24,7 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import List, Tuple, Literal, Optional, TYPE_CHECKING
+from typing import List, Tuple, Literal, Optional, Any, Coroutine, TYPE_CHECKING
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
@@ -103,14 +103,16 @@ class Gamestate:
     def result(self) -> Optional[Literal[0, 1, 2]]:
         return self._result
 
-    async def board_stack(self, side: Optional[Literal[0, 1]] = None, digit_size: int = 35) -> List[Image.Image]:
-        loop: asyncio.AbstractEventLoop = asyncio.get_running_loop()
-        with ThreadPoolExecutor() as pool:
-            imgs = await loop.run_in_executor(
-                pool,
-                lambda: [board.get_board_image(side if side else self._current_player, digit_size) for board in self._board_stack]
-            )
-        return imgs
+    @staticmethod
+    async def stack_boards(board_stack: List[Board], side: Literal[0, 1], digit_size: int = 35) -> List[Image.Image]:
+        tasks: list[Coroutine[Any, Any, Image.Image]] = [
+            board.get_board_image(side, digit_size) 
+            for board in board_stack
+        ]
+        return await asyncio.gather(*tasks)
+
+    async def stack_all_boards(self, digit_size: int = 35) -> List[Image.Image]:
+        return await Gamestate.stack_boards(self._board_stack, self.current_player, digit_size)
 
     def score(self, side: Literal[0, 1]) -> int:
         if side:
@@ -125,10 +127,10 @@ class Gamestate:
     def next_player(self) -> None:
         self._current_player = 1 - self._current_player
 
-    def get_board(self, side: Optional[Literal[0, 1]] = None, digit_size: int = 35) -> Image.Image:
-        return self._board.get_board_image(side if side else self._current_player, digit_size)
+    async def get_board(self, side: Optional[Literal[0, 1]] = None, digit_size: int = 35) -> Image.Image:
+        return await self._board.get_board_image(side if side else self._current_player, digit_size)
 
-    def play_move(self,
+    async def play_move(self,
                   move: Literal[0, 1, 2, 3, 4, 5],
                   animate: bool = True) -> List[Image.Image] | Image.Image:
         if move >= 6 or move < 0:
@@ -143,9 +145,9 @@ class Gamestate:
             board_stack: Board = self._play_move(move)
             self._board_stack.append(board_stack)
 
-        return self._check_terminal(board_stack, animate)
+        return await self._check_terminal(board_stack, animate)
 
-    def _check_terminal(self,
+    async def _check_terminal(self,
                         board_stack: List[Board] | Board,
                         animate: bool) -> List[Image.Image] | Image.Image:
         side_1: List[Board.Hole] = self._board.get_holes(0)
@@ -177,9 +179,9 @@ class Gamestate:
             else:
                 board_stack = self._board
         if animate:
-            return [board.get_board_image(self._current_player) for board in board_stack]
+            return await Gamestate.stack_boards(board_stack, self._current_player)
         else:
-            return board_stack.get_board_image(self._current_player)
+            return await board_stack.get_board_image(self._current_player)
 
     def _do_capture(self, hole_index: int, side: Literal[0, 1]) -> bool:
         opposite_hole_index: int = (2 * self._rule_set['PLAYER_TO_STORE_INDEX'][0]) - hole_index
