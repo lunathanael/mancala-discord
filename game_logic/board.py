@@ -62,6 +62,7 @@ class Board:
     Coordinate: TypeAlias = Tuple[int, int]
     board_ico: Image.Image = Image.open('assets/board.png')
     seed_icos: List[Image.Image] = [Image.open(join('assets/', f)) for f in listdir('assets/') if "seed" in f]
+    font: ImageFont.FreeTypeFont = ImageFont.truetype(r'C:\Windows\Fonts\Arial.ttf', digit_size)
 
     def __init__(self, rule_set: Ruleset, variance: int = 15, size: int = 80):
         self.rule_set: Ruleset = rule_set
@@ -85,7 +86,6 @@ class Board:
 
         board: Image.Image = self.board_ico.copy()
 
-        font: ImageFont.FreeTypeFont = ImageFont.truetype(r'C:\Windows\Fonts\Arial.ttf', digit_size)
 
         # Loop which generates an image depending on which way the board should be facing
         for x in range(2):
@@ -100,13 +100,13 @@ class Board:
 
                     direction[0] = 1.9 + digit_offset
                     direction[1] -= digit_offset
-                    draw.text((pos[0], pos[1] + 50 * direction[x]), str(len(i)), fill="black", font=font, align="right")
+                    draw.text((pos[0], pos[1] + 50 * direction[x]), str(len(i)), fill="black", font=Board.font, align="right")
 
             for l in self.store[(x + facing) % 2]:
                 board.paste(l.ico, (p2[x][0] + l.pos_offset[0], p2[x][1] + l.pos_offset[1]), l.ico)
 
                 draw: ImageDraw = ImageDraw.Draw(board)
-                draw.text(score[x], str(len(self.store[(x + facing) % 2])), fill="black", font=font, align="right")
+                draw.text(score[x], str(len(self.store[(x + facing) % 2])), fill="black", font=Board.font, align="right")
 
         return self.add_transparency(board)
 
