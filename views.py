@@ -63,7 +63,7 @@ class ConfirmationView(discord.ui.View):
             description=f"**{challenge.challenged.display_name}** accepted **{challenge.challenger.display_name}**'s challenge.\n\n",
             color=discord.Color.green()
         )
-        embed.set_footer(text="Made with ❤️ by utop1a.", icon_url=r"https://imgur.com/a/96jpwM5")
+        embed.set_footer(text="Made with ❤️ by utop1a.", icon_url=r"https://i.imgur.com/a/96jpwM5")
 
         async_results: Tuple[Match, discord.Message] = await asyncio.gather(
             self.match_manager.add_match(player_1=self.player_1, player_2=self.player_2),
@@ -93,7 +93,7 @@ class ConfirmationView(discord.ui.View):
                 description=f"**{challenge.challenger.display_name}** canceled their challenge.\n\n",
                 color=discord.Color.red()
             )
-            embed.set_footer(text="Made with ❤️ by utop1a.", icon_url=r"https://imgur.com/a/96jpwM5")
+            embed.set_footer(text="Made with ❤️ by utop1a.", icon_url=r"https://i.imgur.com/a/96jpwM5")
             response_msg: str = "Challenge canceled."
         else:
             embed: discord.Embed = discord.Embed(
@@ -101,7 +101,7 @@ class ConfirmationView(discord.ui.View):
                 description=f"**{challenge.challenged.display_name}** rejected **{challenge.challenger.display_name}**'s challenge.\n\n",
                 color=discord.Color.red()
             )
-            embed.set_footer(text="Made with ❤️ by utop1a.", icon_url=r"https://imgur.com/a/96jpwM5")
+            embed.set_footer(text="Made with ❤️ by utop1a.", icon_url=r"https://i.imgur.com/a/96jpwM5")
             response_msg: str = "Challenge rejected."
 
         await asyncio.gather(
@@ -177,7 +177,7 @@ class GameoverView(View):
                             f"### Do you accept the challenge?",
                 color=discord.Color.blue()
             )
-            embed.set_footer(text="Made with ❤️ by utop1a.", icon_url=r"https://imgur.com/a/96jpwM5")
+            embed.set_footer(text="Made with ❤️ by utop1a.", icon_url=r"https://i.imgur.com/a/96jpwM5")
 
             view: ConfirmationView = ConfirmationView(match_manager=self.match_manager, player_1=player_1, player_2=player_2)
             try:
@@ -202,7 +202,7 @@ class GameoverView(View):
                 description="You have a challenge pending or are already in a match!",
                 color=discord.Color.red()
             )
-            embed.set_footer(text="Made with ❤️ by utop1a.", icon_url=r"https://imgur.com/a/96jpwM5")
+            embed.set_footer(text="Made with ❤️ by utop1a.", icon_url=r"https://i.imgur.com/a/96jpwM5")
             await msg.edit(content=None, embed=embed, view=None)
         else:
             if opponent is None or player_1 == player_2:

@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import os
 from typing import List, Optional, Literal, TYPE_CHECKING
+import random
 
 import discord
 from discord.ext import commands
@@ -100,12 +101,15 @@ async def sync(
 
 @bot.hybrid_command(name='challenge', description='Request a mancala match.')
 @discord.app_commands.describe(opponent='The opponent, selecting the bot for AI. (Required)',
-                       second='Select `True` to go second. (Optional)',
+                       order='Select the order of players. (Optional)',
                        difficulty="The AI's difficulty. (Optional)")
 async def challenge(ctx: commands.Context,
                     opponent: discord.User = commands.parameter(description='Please select an opponent, selecting the bot for AI. (Required)'),
-                    second: Optional[bool] = commands.parameter(description='Select to go second. (Optional)', default=False),
+                    order: Optional[Literal["First", "Second", "Random"]] = commands.parameter(description='Select the order of players. (Optional)', default="Random"),
                     difficulty: Optional[EngineInterface.ENGINE_DIFFICULTIES] = commands.parameter(description="The AI's difficulty. (Optional)", default=6)):
+    if order == "Random":
+        order = ("First", "Second")[random.randint(0, 1)]
+    first: bool = order == "First"
 
     if opponent == bot.user:
         opponent = None
@@ -116,8 +120,8 @@ async def challenge(ctx: commands.Context,
         await ctx.reply("You can't challenge yourself. (for now) 😅")
         return
 
-    player_1: Optional[discord.User] = opponent if second else ctx.author
-    player_2: Optional[discord.User] = ctx.author if second else opponent
+    player_1: Optional[discord.User] = ctx.author if first else opponent
+    player_2: Optional[discord.User] = opponent if first else ctx.author
 
     if opponent is None or player_1 == player_2:
         msg: discord.Message = await ctx.send("Starting match...")
@@ -129,7 +133,7 @@ async def challenge(ctx: commands.Context,
                         f"### Do you accept the challenge?",
             color=discord.Color.blue()
         )
-        embed.set_footer(text="Made with ❤️ by utop1a.", icon_url=r"https://imgur.com/a/96jpwM5")
+        embed.set_footer(text="Made with ❤️ by utop1a.", icon_url=r"https://i.imgur.com/a/96jpwM5")
 
         view: ConfirmationView = ConfirmationView(match_manager=match_manager, player_1=player_1, player_2=player_2)
         try:
@@ -152,7 +156,7 @@ async def challenge(ctx: commands.Context,
             description="You have a challenge pending or are already in a match!",
             color=discord.Color.red()
         )
-        embed.set_footer(text="Made with ❤️ by utop1a.", icon_url=r"https://imgur.com/a/96jpwM5")
+        embed.set_footer(text="Made with ❤️ by utop1a.", icon_url=r"https://i.imgur.com/a/96jpwM5")
         await msg.edit(content=None, embed=embed, view=None)
     else:
         if opponent is None or player_1 == player_2:

@@ -152,7 +152,7 @@ class Match:
             title=f"{self.player_1.display_name if self.player_1 else f'AI level {self.difficulty}'} vs. {self.player_2.display_name if self.player_2 else f'AI level {self.difficulty}'}",
             color=self.embed_color
         )
-        embed.set_footer(text="Made with ❤️ by utop1a.", icon_url=r"https://imgur.com/a/96jpwM5")
+        embed.set_footer(text="Made with ❤️ by utop1a.", icon_url=r"https://i.imgur.com/a/96jpwM5")
 
         imgs: List[Image.Image] = await self.gamestate.stack_all_boards()
         output_gif: BytesIO = BytesIO()
@@ -202,7 +202,7 @@ class Match:
             description=description,
             color=self.embed_color
         )
-        embed.set_footer(text="Made with ❤️ by utop1a.", icon_url=r"https://imgur.com/a/96jpwM5")
+        embed.set_footer(text="Made with ❤️ by utop1a.", icon_url=r"https://i.imgur.com/a/96jpwM5")
 
         self.previous_player = self.current_player.mention if self.current_player else self.bot.mention
 
