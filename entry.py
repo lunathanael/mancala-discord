@@ -34,6 +34,8 @@ from dotenv import load_dotenv
 from match import MatchManager
 from errors import PlayerFound
 from views import ConfirmationView
+from engine import EngineInterface
+
 
 if TYPE_CHECKING:
     from match import Match
@@ -102,8 +104,8 @@ async def sync(
                        difficulty="The AI's difficulty. (Optional)")
 async def challenge(ctx: commands.Context,
                     opponent: discord.User = commands.parameter(description='Please select an opponent, selecting the bot for AI. (Required)'),
-                    second: Optional[bool] = commands.parameter(description='Select `True` to go second. (Optional)', default=False),
-                    difficulty: Optional[Literal[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]] = commands.parameter(description="The AI's difficulty. (Optional)", default=6)):
+                    second: Optional[bool] = commands.parameter(description='Select to go second. (Optional)', default=False),
+                    difficulty: Optional[EngineInterface.ENGINE_DIFFICULTIES] = commands.parameter(description="The AI's difficulty. (Optional)", default=6)):
 
     if opponent == bot.user:
         opponent = None

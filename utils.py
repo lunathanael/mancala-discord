@@ -24,5 +24,6 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
+
 def to_lower(argument: str):
     return argument.lower()

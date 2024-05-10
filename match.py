@@ -69,6 +69,7 @@ class Match:
 
     __slots__: Tuple[str] = (
         'bot',
+        'match_manager',
         'msg',
         'player_1',
         'player_2',
@@ -83,9 +84,11 @@ class Match:
     VALID_EMOJIS: List[str] = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣"]
     INVALID_EMOJIS: List[str] = ["❤", "🩷", "🧡", "💛", "💚", "💙"]
 
-    def __init__(self, bot: User, msg: Message, player_1: Optional[User] = None, player_2: Optional[User] = None, **kwargs: Dict[str, Any]):
+    def __init__(self, bot: User, match_manager: MatchManager, msg: Message, player_1: Optional[User] = None, player_2: Optional[User] = None, **kwargs: Dict[str, Any]):
         self.bot: User = bot
+        self.match_manager: MatchManager = match_manager
         self.msg: Message = msg
+
         self.player_1: Optional[User] = player_1
         self.player_2: Optional[User] = player_2
 
@@ -223,7 +226,7 @@ class Match:
 
         if self.terminal:
             content: str = f"{self.player_1.mention if self.player_1 is not None else self.bot.mention} {self.player_2.mention if self.player_2 is not None else self.bot.mention}"
-            view = GameoverView(self)
+            view = GameoverView(self, self.match_manager)
             winner: Optional[User] = self.winner
             score: str = f"**{self.gamestate.score(0)} to {self.gamestate.score(1)}**"
 
@@ -290,6 +293,7 @@ class Challenge:
 
     __slots__: Tuple[str] = (
         'bot',
+        'match_manager',
         'msg',
         'challenger',
         'challenged',
@@ -302,6 +306,7 @@ class Challenge:
 
     def __init__(self,
                  bot: User,
+                 match_manager: MatchManager,
                  msg: Message,
                  challenger: Optional[User] = None,
                  challenged: Optional[User] = None,
@@ -309,6 +314,7 @@ class Challenge:
                  player_2: Optional[User] = None,
                  **kwargs: Dict[str, Any]):
         self.bot: User = bot
+        self.match_manager: MatchManager = match_manager
         self.msg: Message = msg
         self.challenger: Optional[User] = challenger
         self.challenged: Optional[User] = challenged
@@ -322,6 +328,7 @@ class Challenge:
     def to_match(self) -> Match:
         return Match(
             bot=self.bot.user,
+            match_manager=self.match_manager,
             msg=self.msg,
             player_1=self.player_1,
             player_2=self.player_2,
@@ -401,6 +408,7 @@ class MatchManager:
 
         challenge: Challenge = Challenge(
             bot=self.bot,
+            match_manager=self,
             msg=msg,
             challenger=challenger,
             challenged=challenged,

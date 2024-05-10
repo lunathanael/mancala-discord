@@ -30,6 +30,8 @@ import asyncio
 import discord
 from discord.ui import Button, View
 
+from errors import PlayerFound
+
 if TYPE_CHECKING:
     from match import MatchManager, Challenge, Match, MessageKwargs
 
@@ -151,15 +153,65 @@ class MoveView(View):
 
 
 class GameoverView(View):
-    def __init__(self, match: Match):
+    def __init__(self, match: Match, match_manager: Match):
         super().__init__(timeout=None)
 
         self.match: Match = match
+        self.match_manager: MatchManager = match_manager
         self.msg: Optional[discord.Message] = None
 
     @discord.ui.button(label="Rematch", style=discord.ButtonStyle.secondary)
     async def rematch_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        pass
+        author: discord.User = interaction.user
+        opponent: Optional[discord.User] = self.match.player_2 if self.match.player_1 == author else self.match.player_2
+        player_1: Optional[discord.User] = self.match.player_2
+        player_2: Optional[discord.User] = self.match.player_1
+        if opponent is None or player_1 == player_2:
+            await interaction.response.send_message("Starting match...")
+            msg: discord.Message =  await interaction.original_response()
+        else:
+            embed: discord.Embed = discord.Embed(
+                title="Challenge request",
+                description=f"# **{author.display_name}** has challenged **{opponent.display_name}** to a board game!\n\n"
+                            f"## {player_1.mention} vs {player_2.mention}\n\n"
+                            f"### Do you accept the challenge?",
+                color=discord.Color.blue()
+            )
+            embed.set_footer(text="Made with ❤️ by utop1a.", icon_url=r"https://imgur.com/a/96jpwM5")
+
+            view: ConfirmationView = ConfirmationView(match_manager=self.match_manager, player_1=player_1, player_2=player_2)
+            try:
+                await interaction.response.send_message(opponent.mention, embed=embed, view=view)
+                msg: discord.Message =  await interaction.original_response()
+            except discord.errors.Forbidden:
+                await interaction.response.send_message(content=f"{author.mention}I don't have the required permissions! (Files, Embed)", embed=None, view=None)
+                msg: discord.Message =  await interaction.original_response()
+                return
+
+        try:
+            await self.match_manager.add_challenge(
+                msg=msg,
+                challenger=author,
+                challenged=opponent,
+                player_1=player_1,
+                player_2=player_2,
+                difficulty=self.match.difficulty)
+        except PlayerFound:
+            embed: discord.Embed = discord.Embed(
+                title="Challenge request failed.",
+                description="You have a challenge pending or are already in a match!",
+                color=discord.Color.red()
+            )
+            embed.set_footer(text="Made with ❤️ by utop1a.", icon_url=r"https://imgur.com/a/96jpwM5")
+            await msg.edit(content=None, embed=embed, view=None)
+        else:
+            if opponent is None or player_1 == player_2:
+                match: Match = await self.match_manager.add_match(player_1=player_1, player_2=player_2)
+                try:
+                    await match.send_reply(move=None, gif=False)
+                except discord.errors.Forbidden:
+                    match.terminate()
+                    await msg.edit(content=f"{author.mention}I don't have the required permissions! (Files, Embed)", embed=None, view=None)
 
     @discord.ui.button(label="Full GIF", style=discord.ButtonStyle.secondary)
     async def gif_button(self, interaction: discord.Interaction, button: discord.ui.Button):

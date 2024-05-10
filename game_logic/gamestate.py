@@ -282,11 +282,11 @@ class Gamestate:
                 if self._rule_set['capture_on_one_cycle']:
                     if first_cycle:
                         if self._do_capture(hole_index, player):
-                            board_stack.append(self._board)
+                            board_stack.append(self._board.copy())
                             return board_stack
                 else:
                     if self._do_capture(hole_index, player):
-                        board_stack.append(self._board)
+                        board_stack.append(self._board.copy())
                         return board_stack
         else:
             if self._rule_set['do_relay_sowing']:

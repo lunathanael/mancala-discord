@@ -24,7 +24,7 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from typing import Tuple, Dict, Literal, Optional, TYPE_CHECKING
+from typing import Tuple, Dict, Literal, Optional, TypeAlias, TYPE_CHECKING
 import subprocess
 import threading
 import queue
@@ -50,8 +50,14 @@ class EngineInterface:
         'min_max': 2, 
         'alpha_beta': 3, 
         'simple_threaded_ab': 4,
-	    'heuristic_ab': 5
+	    'heuristic_ab': 5,
+        'beta_alpha': 6,
     }
+
+    ENGINE_DIFFICULTIES: TypeAlias = Literal[ 
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+        -1, -2, -3, -3, -4, -5, -6, -7, -8, -9, 10,
+    ]
 
     @staticmethod
     def enqueue_output(out: subprocess.Popen.stdout, output_queue: queue.Queue):
@@ -104,15 +110,21 @@ class EngineInterface:
                                     'min_max', 
                                     'alpha_beta', 
                                     'simple_threaded_ab',
-                                    'heuristic_ab'] = 'alpha_beta', 
+                                    'heuristic_ab',
+                                    'beta_alpha'] = 'alpha_beta', 
                      engine_depth: int = 6,
                      timeout: Optional[float] = None) -> int:
 
         if game_state is not None:
             await self.parse_gamestate(game_state)
 
-        if engine_depth <= 0:
+        if engine_depth == 0:
             engine = 'random'
+        if engine_depth < 0:
+            engine = 'beta_alpha'
+            engine_depth = -engine_depth
+
+        engine_depth = int(engine_depth * 2)
 
         if engine not in EngineInterface.ENGINE_DICT:
             raise EngineSearchNotFound(engine)
@@ -135,3 +147,16 @@ class EngineInterface:
                 raise EngineSearchFailed(params.strip(), out_msg)
             else:
                 return move
+
+if __name__ == "__main__":
+    engine = EngineInterface()
+    import asyncio
+    from timeit import default_timer as timer
+    i = 1
+    while True:
+        depth = i / 2
+        start = timer()
+        hole = asyncio.run(engine.search(engine_depth=depth))
+        print(f"info {hole} {i} {timer() - start}")
+        i += 1
+
