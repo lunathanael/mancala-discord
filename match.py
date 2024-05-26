@@ -254,6 +254,8 @@ class Match:
 
     async def send_reply(self, move: Optional[Literal[0, 1, 2, 3, 4, 5]] = None, gif: bool = True) -> None:
         kwargs: MessageKwargs = await self.msg_content(move=move, gif=gif)
+        if move is not None:
+            await self.msg.add_reaction('✅')
         self.msg = await self.msg.reply(**kwargs)
 
         if self.current_player is None and not self.terminal:
